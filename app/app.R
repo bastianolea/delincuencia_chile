@@ -235,7 +235,7 @@ ui <- fluidPage(
            
            p("El objetivo de esta plataforma es transparentar datos objetivos de la delincuencia en el país, 
              otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político."
-             ),
+           ),
            
            hr()
     )
@@ -348,7 +348,7 @@ ui <- fluidPage(
              tags$a("técnicas de web scraping en R, detalladas en este tutorial.",
                     href = "https://bastianolea.github.io/tutorial_r_datos_delincuencia/",
                     target = "_blank")
-             ),
+           ),
            
            div(style = "height: 30px")
            
@@ -458,7 +458,7 @@ server <- function(input, output, session) {
   
   delitos_maximo <- reactive(max(datos()$delitos_mm))
   
-  #filtrar periodos presidenciales ----
+  # presidentes ----
   periodos_presidenciales <- reactive({
     periodos_presidenciales_0 |> 
       mutate(presidente_fecha_termino = case_when(is.na(presidente_fecha_termino) ~ as_date(max(datos()$fecha)), 
@@ -472,6 +472,10 @@ server <- function(input, output, session) {
   })
   
   presidentes_fecha <- reactive({
+    # browser()
+    presidentes <- periodos_presidenciales_0 |> 
+      select(presidente, fecha_inicio = presidente_fecha_inicio, fecha_termino = presidente_fecha_termino)
+    
     presidentes |> 
       group_by(presidente) |> 
       mutate(id = 1:n()) |> 
@@ -482,7 +486,8 @@ server <- function(input, output, session) {
                                   paste0(delincuencia$fecha |> max() |> year(), "-12-01") |> ymd(), 
                                   by='months')) |>
       arrange(desc(fecha)) |> 
-      tidyr::fill(c(presidente, presidente_id, fecha_inicio, fecha_termino), .direction = "downup")
+      tidyr::fill(c(presidente, presidente_id, fecha_inicio, fecha_termino), .direction = "downup") |> 
+      select(-id)
   })
   
   # pandemia ----
@@ -556,6 +561,17 @@ server <- function(input, output, session) {
                  x = fecha_inicio_pandemia() + 20, y = valor_inicio_pandemia() * 1.02,
                  color = color_texto, alpha = transparencia_pandemia, 
                  vjust = 0, hjust = 0)
+    }
+    
+    if (input$tendencia == TRUE) {
+      #tendencia
+      p <- p + 
+        stat_smooth(method = "lm",
+                    linewidth = 2.5, col = color_fondo, linetype = "solid",
+                    se = FALSE, fullrange = T, show.legend = F) + #sombra
+        stat_smooth(method = "lm",
+                    linewidth = 1.5, col = color_secundario, linetype = "dashed",
+                    se = FALSE, fullrange = T, show.legend = F)
     }
     
     p <- p +
@@ -634,13 +650,7 @@ server <- function(input, output, session) {
       labs(y = paste("Cantidad de delitos en", input$comuna),
            x = NULL)
     
-    if (input$tendencia == TRUE) {
-      #tendencia
-      p <- p + 
-        stat_smooth(method = "lm",
-                    linewidth = 1.5, col = color_secundario, linetype = "dashed",
-                    se = FALSE, fullrange = T, show.legend = F)
-    }
+    
     
     plot(p)
   }, res = 95)
@@ -761,7 +771,7 @@ server <- function(input, output, session) {
       left_join(presidentes_fecha(), join_by(fecha)) |> 
       mutate(presidente_id = presidente_id |> str_remove_all (" 1") |> 
                fct_reorder(fecha)) |>
-      mutate(presidente_id = presidente_id|> fct_rev()) |> 
+      mutate(presidente_id = presidente_id |> fct_rev()) |> 
       #meses
       mutate(año = year(fecha),
              mes = month(fecha)) |> 
