@@ -300,8 +300,8 @@ ui <- fluidPage(
     ),
     
     #grafico líneas----
-    column(7,
-           plotOutput("grafico", width = "100%", height = "600px") |> 
+    column(8,
+           plotOutput("grafico", width = "100%", height = 720) |> 
              withSpinner(color = color_secundario, type = 8),
            
            
@@ -312,10 +312,10 @@ ui <- fluidPage(
   fluidRow(
     column(7,
            h2("Delitos anuales en", textOutput("comuna1", inline = T)),
-           plotOutput("grafico_anuales", height = 450) |> 
+           plotOutput("grafico_anuales", height = 400) |> 
              withSpinner(color = color_secundario, type = 8)
     ),
-    column(5, style = "height: 450;",
+    column(5, style = "height: 400;",
            h2("Promedio de delitos mensuales en", textOutput("comuna3", inline = T), "por periodo presidencial"),
            div(style = "padding-top: 48px; padding-bottom: 48px;",
                
@@ -329,7 +329,7 @@ ui <- fluidPage(
   fluidRow(
     column(12,
            h2("Delitos principales por año en", textOutput("comuna2", inline = T)),
-           plotOutput("grafico_principales", height = 450) |> 
+           plotOutput("grafico_principales", height = 600) |> 
              withSpinner(color = color_secundario, type = 8)
     )
   ),
@@ -493,6 +493,8 @@ server <- function(input, output, session) {
   # pandemia ----
   fecha_inicio_pandemia = reactive(dmy("11-03-2020"))
   
+  fecha_fin_cuarentena = reactive(dmy("29-06-2021"))
+  
   valor_inicio_pandemia = reactive(datos() |> filter(fecha >= dmy("01-03-2020") & fecha < dmy("30-03-2020")) |> 
                                      summarize(max(delitos_mm)) |> pull())
   
@@ -504,8 +506,11 @@ server <- function(input, output, session) {
   promedio_delitos_periodo_piñera <- reactive({
     datos() |> 
       filter(fecha >= piñera()$presidente_fecha_inicio,
-             fecha <= piñera()$presidente_fecha_termino) |> 
+             fecha <= piñera()$presidente_fecha_termino) |>
+      #solo datos desde antes de la pandemia
       filter(fecha <= fecha_inicio_pandemia()) |> 
+      #solo datos desde antes de la pandemia o de después del fin de la última cuarentena
+      # filter(fecha <= fecha_inicio_pandemia() | fecha >= fecha_fin_cuarentena()) |> 
       summarize(delitos = mean(delitos)) |> 
       pull()
   })
@@ -526,6 +531,7 @@ server <- function(input, output, session) {
   
   #grafico líneas ----
   output$grafico <- renderPlot({
+    req(length(input$comuna) == 1)
     req(datos())
     message("grafico...")
     
@@ -547,13 +553,16 @@ server <- function(input, output, session) {
       geom_text(data = periodos_presidenciales() |> filter(presidente_fecha_inicio >= min(datos()$fecha)), 
                 aes(x = fecha, y = delitos_maximo()*1.22,
                     label = presidente |> str_remove("\\w+$") |> str_wrap(20)),
-                size = 3, color = color_texto, alpha = 0.7, inherit.aes = F, show.legend = F)
+                size = 3.5, color = color_texto, alpha = 0.7, inherit.aes = F, show.legend = F)
     
     if (input$pandemia) {
       p <- p +
         #marca pandemia
         annotate(geom = "segment", y = 0, yend = delitos_maximo()*1.17, 
                  x = fecha_inicio_pandemia(), xend = fecha_inicio_pandemia(),
+                 color = color_texto, alpha = transparencia_pandemia) +
+        annotate(geom = "segment", y = 0, yend = delitos_maximo()*1.17, 
+                 x = fecha_fin_cuarentena(), xend = fecha_fin_cuarentena(),
                  color = color_texto, alpha = transparencia_pandemia) +
         geom_hline(yintercept = valor_inicio_pandemia(), linetype = "dashed", 
                    color = color_texto, alpha = transparencia_pandemia) +
@@ -658,6 +667,7 @@ server <- function(input, output, session) {
   
   #gráfico barras delitos anuales ----
   output$grafico_anuales <- renderPlot({
+    req(length(input$comuna) == 1)
     
     #delitos por año
     datos <- datos_comuna() |> 
@@ -693,9 +703,8 @@ server <- function(input, output, session) {
   }, res = 90)
   
   #gráfico barras delitos principales ---- 
-  
   output$grafico_principales <- renderPlot({
-    # req(input$fecha[1] > 2000)
+    req(length(input$comuna) == 1)
     
     datos <- datos_comuna() |> 
       mutate(año = year(fecha)) |> 
@@ -764,6 +773,7 @@ server <- function(input, output, session) {
   
   #gráfico mensuales promedio presidente ----
   output$grafico_presidentes_dias <- renderPlot({
+    req(length(input$comuna) == 1)
     # browser()
     #delitos diarios promedio durante el periodo de cada presidente
     datos <- datos_comuna() |> 

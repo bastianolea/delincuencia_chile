@@ -8,12 +8,12 @@ library(RCurl)
 #este proceso genera requests para descargar las estadísticas de CEAD usando su API (privada), con un reposo entre request del
 #doble de tiempo en que tardó en entregar los datos. Los delitos se eligen con el argumento `delito` de la función cead_generar_request()
 
-source("funciones.R")
-source("delincuencia/funciones_delincuencia.R")
+source("funciones_delincuencia.R")
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
-años_elegidos = 2010:2023
+# años_elegidos = 2010:2023
+años_elegidos = 2023:2024
 
 # scraping por api ----
 
@@ -47,7 +47,8 @@ datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
 
 
 # guardar información cruda
-readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo.rds", compress = "gz")
+# readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo.rds", compress = "gz")
+readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
 
 
 #—----
@@ -60,8 +61,9 @@ readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo.rds", compress = "gz
 # limpieza ----
 
 #por cada comuna
-cead_limpiada <- map_df(comunas_por_calcular, \(.comuna) {
+cead_limpiada <- map_df(comunas_por_calcular |> as.character(), \(.comuna) {
   message("obteniendo ", .comuna)
+  # .comuna <- comunas_por_calcular[2] |> as.character()
   
   #extraer la comuna desde los datos names(cead)
   cead_comuna <- datos_cead |> 
@@ -70,11 +72,22 @@ cead_limpiada <- map_df(comunas_por_calcular, \(.comuna) {
   #por cada año
   datos_comuna_año <- map(names(cead_comuna), \(.año) {
     message("obteniendo año ", .año)
+    #.año <- "2024"
     
     #extraer los datos desde la comuna
     cead_comuna_año <- cead_comuna |> 
       pluck(.año) |>
+      # rvest::read_html() |> 
+      # rvest::html_table() |> 
+      # purrr::pluck(1) |> 
+      # janitor::row_to_names(2) |> 
+      # rename(delitos = 1)
       cead_obtener_tabla()
+    
+    if (nrow(cead_comuna_año) == 0) {
+      message("sin datos para comuna ", .comuna, " en año ", .año)
+      return(NULL)
+    }
     
     #pivotar y agregar datos de caracterización
     cead_datos <- cead_comuna_año |> 
@@ -103,8 +116,29 @@ cead <- cead_limpiada |>
   left_join(cargar_comunas(), join_by(cut_comuna)) |> 
   mutate(across(where(is.character), as.factor))
 
+
+#unir con datos anteriores ----
+cead_nuevo <- cead
+cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
+
+
+cead_nuevo |> 
+  filter(fecha > "2023-01-01") |> 
+  summarize(max(fecha))
+
+cead_anterior |> 
+  filter(fecha > "2023-01-01") |> 
+  summarize(max(fecha))
+
+
+cead_unido <- cead_anterior |> 
+  filter(fecha < "2023-01-01") |> 
+  bind_rows(cead_nuevo) |> 
+  arrange(fecha, comuna, delito)
+
+
 #guardar
 # readr::write_csv2(cead, "datos/cead_incivilidades.csv")
-arrow::write_parquet(cead, "datos/cead_delincuencia.parquet")
+# arrow::write_parquet(cead, "datos/cead_delincuencia.parquet")
 # cead <- arrow::read_parquet("datos/cead_delincuencia.parquet")
-arrow::write_parquet(cead, "app/cead_delincuencia.parquet")
+arrow::write_parquet(cead_unido, "app/cead_delincuencia.parquet")

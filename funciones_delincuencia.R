@@ -20,6 +20,12 @@
 #   "referrerPolicy": "strict-origin-when-cross-origin"
 # })
 
+cargar_comunas <- function() {
+  # comunas <- arrow::read_feather("~/Turismo/sernatur_bigdata/resultados/sernaturbd_cut_comunas.feather")
+  # readr::write_csv2(comunas, "datos/comunas_chile_cut.csv")
+  readr::read_csv2("datos/comunas_chile_cut.csv")
+}
+
 
 cead_generar_request <- function(año_elegido, comuna_numero, delitos = "protocolo") {
   request_fechas = "&trimestre%5B%5D=1&trimestre%5B%5D=2&trimestre%5B%5D=3&trimestre%5B%5D=4&mes%5B%5D=1&mes%5B%5D=2&mes%5B%5D=3&mes%5B%5D=4&mes%5B%5D=5&mes%5B%5D=6&mes%5B%5D=7&mes%5B%5D=8&mes%5B%5D=9&mes%5B%5D=10&mes%5B%5D=11&mes%5B%5D=12&mes_nombres%5B%5D=Enero&mes_nombres%5B%5D=Febrero&mes_nombres%5B%5D=Marzo&mes_nombres%5B%5D=Abril&mes_nombres%5B%5D=Mayo&mes_nombres%5B%5D=Junio&mes_nombres%5B%5D=Julio&mes_nombres%5B%5D=Agosto&mes_nombres%5B%5D=Septiembre&mes_nombres%5B%5D=Octubre&mes_nombres%5B%5D=Noviembre&mes_nombres%5B%5D=Diciembre"
