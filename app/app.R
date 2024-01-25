@@ -8,6 +8,7 @@ library(stringr)
 library(forcats)
 library(glue)
 library(fresh)
+library(shinycssloaders)
 
 delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
@@ -17,15 +18,14 @@ periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv"
 
 
 color_fondo = "#1f272b"
-color_texto = "white"
+color_texto = "#cdf2ef"
 color_secundario = "#317773"
+color_enlaces = "#3d9691"
 color_detalle = "#1e3534"
-color_destacado = "#FF6600"
+color_destacado = "#cf5a13"
 
-transparencia_periodos = 0.05
-transparencia_pandemia = 0.2
-
-.dias_media = 14
+color_positivo = "#91b423"
+color_negativo = "#c03426"
 
 css <- function(text) {
   tags$style(glue(text, .open = "{{", .close = "}}"))
@@ -40,8 +40,9 @@ ui <- fluidPage(
     bs_vars_input(bg = color_fondo),
     bs_vars_global(body_bg = color_fondo, 
                    text_color = color_texto, 
-                   link_color = color_texto),
-    bs_vars_font(size_base = "12px", #aumentar globalmente tamaño de letra  
+                   link_color = color_texto,
+                   border_radius_base = "6px"),
+    bs_vars_font(size_base = "14px", #aumentar globalmente tamaño de letra  
                  family_sans_serif = "Open Sans" #cargar fuente o tipo de letra
     ),
     bs_vars_button(
@@ -61,6 +62,13 @@ ui <- fluidPage(
   
   css("p {
       color: {{color_texto}};
+  }
+  a {
+    color: {{color_enlaces}};
+    font-weight: bold !important;
+  }
+   hr {
+  border-top: 3px solid {{color_detalle}} ;
   }"),
   
   css("h1, h2, h3 {
@@ -71,6 +79,12 @@ ui <- fluidPage(
       font-weight: bold;
       color: {{color_secundario}} !important;
   }"),
+  
+  css("h2 {
+      margin-top: 38px !important;
+      margin-bottom: 12px !important;
+  }"),
+  
   
   #estilo de barra slider
   css("
@@ -140,10 +154,90 @@ ui <- fluidPage(
   color: {{color_texto}};
   }"),
   
+  #colores pickers
+  tags$style(paste0(".btn.dropdown-toggle { /* color del picker mismo */
+                   color: black;
+  }
+                   
+         .dropdown-menu, .divider {
+          color: white !important;
+         background: ", color_detalle, " !important;
+         }
+  
+         .dropdown-header {
+         color: white !important;
+         font-family: Aleo;
+         font-weight: bold;
+         font-size: 110%;
+         }
+         
+         .text {
+         color: white;
+         font-size: 80%;
+         }
+         
+         .form-control {
+         color: ", color_texto, " !important;
+         box-shadow: none;
+         }
+         
+         .no-results {
+         color: black !important;
+         background: ", color_detalle, " !important;
+         }
+         
+         .selected {
+         background-color: ", color_secundario, " !important;
+         color: ", color_detalle, " !important;
+         }
+         
+         .bs-placeholder, .bs-placeholder:active, bs-placeholder:focus, .bs-placeholder:hover {
+         color: ", color_fondo, " !important;
+         }
+  
+         /*color de fondo de opción elegida*/
+         .dropdown-item.selected {
+         background-color: ", color_destacado, " !important;
+         color: black !important;
+         }
+         
+         /*color del fondo de la opción en hover*/
+         .dropdown-item:hover {
+         color: red;
+         background-color: ", color_secundario, " !important;
+         }
+  ")),
+  
+  
+  #—----
+  
   #header ----
   fluidRow(
     column(12,
-           h1("Visualizador de delincuencia en Chile")
+           div(style = "margin-bottom: 12px;",
+               h1("Visualizador de delincuencia en Chile"),
+               em("Bastián Olea Herrera")
+           ),
+           
+           p("En este visualizador se presentan gráficos con datos estadísticas delictuales entregadas por el", 
+             tags$a("Centro de Estudio y Análisis del Delito (CEAD),", 
+                    href = "https://cead.spd.gov.cl/estadisticas-delictuales/",
+                    target = "_blank"),
+             "quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública."), 
+           
+           p("Según el",
+             tags$a("CEAD,",
+                    href = "https://cead.spd.gov.cl/estadisticas-delictuales/",
+                    target = "_blank"),
+             "cada dato se compone por: ",
+             em("denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito.")
+           ),
+           
+           p("El objetivo de esta plataforma es transparentar datos objetivos de la delincuencia en el país, 
+             otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político."
+             ),
+           
+           hr()
     )
   ),
   
@@ -162,7 +256,7 @@ ui <- fluidPage(
                        width = "100%",
                        multiple = FALSE,
                        choices = NULL,
-                       options = list(width = FALSE)
+                       options = list(width = FALSE, noneSelectedText = "Sin selección")
            ),
            actionButton("azar_comuna", "Elegir comuna al azar", style = "margin-bottom: 14px;"),
            
@@ -193,26 +287,82 @@ ui <- fluidPage(
            
            shinyWidgets::awesomeCheckbox("pandemia", label = "Mostrar pandemia", value = TRUE),
            
-    ),
-    
-    #grafico ----
-    column(7,
-           plotOutput("grafico", width = "100%", height = "600px"),
-           
            sliderInput(
              inputId = "fecha",
              label = h4("Rango de fechas"),
              min = dmy("11-03-2010"),
              max = today(), width = "100%",
-             value = c(dmy("11-03-2010"), today()), timeFormat = "%Y"
+             # value = c(dmy("11-03-2010"), today()), 
+             value = c(dmy("01-01-2017"), today()), 
+             timeFormat = "%Y"
+           )
+           
+    ),
+    
+    #grafico líneas----
+    column(7,
+           plotOutput("grafico", width = "100%", height = "600px") |> 
+             withSpinner(color = color_secundario, type = 8),
+           
+           
+    )
+  ),
+  
+  #gráfico anuales y presidentes ----
+  fluidRow(
+    column(7,
+           h2("Delitos anuales en", textOutput("comuna1", inline = T)),
+           plotOutput("grafico_anuales", height = 450) |> 
+             withSpinner(color = color_secundario, type = 8)
+    ),
+    column(5, style = "height: 450;",
+           h2("Promedio de delitos mensuales en", textOutput("comuna3", inline = T), "por periodo presidencial"),
+           div(style = "padding-top: 48px; padding-bottom: 48px;",
+               
+               plotOutput("grafico_presidentes_dias", height = 260) |> 
+                 withSpinner(color = color_secundario, type = 8)
+           )
+    )
+  ),
+  
+  #gráfico delitos principales por año ----
+  fluidRow(
+    column(12,
+           h2("Delitos principales por año en", textOutput("comuna2", inline = T)),
+           plotOutput("grafico_principales", height = 450) |> 
+             withSpinner(color = color_secundario, type = 8)
+    )
+  ),
+  
+  # firma ----
+  fluidRow(
+    column(12, style = "padding: 28px;",
+           hr(),
+           p("Diseñado y programado por",
+             tags$a("Bastián Olea Herrera.", target = "_blank", href = "https://bastian.olea.biz")),
+           p(
+             "Código de fuente de esta app y del procesamiento de los datos",
+             tags$a("disponible en GitHub.", target = "_blank", href = "https://github.com/bastianolea/delincuencia_chile")
            ),
+           p("Los datos se obtuvieron desde CEAD haciendo uso de",
+             tags$a("técnicas de web scraping en R, detalladas en este tutorial.",
+                    href = "https://bastianolea.github.io/tutorial_r_datos_delincuencia/",
+                    target = "_blank")
+             ),
+           
+           div(style = "height: 30px")
+           
     )
   )
+  
 )
 
 #—----
 server <- function(input, output, session) {
   # browser()
+  
+  updatePickerInput(session, "comuna",
+                    options = list(width = FALSE, noneSelectedText = "Sin selección"))
   
   #selectores ----
   
@@ -250,14 +400,22 @@ server <- function(input, output, session) {
   
   
   #datos ----
+  datos_comuna <- reactive({
+    req(length(input$comuna) == 1)
+    
+    message("datos comuna")
+    
+    delincuencia |> 
+      filter(comuna == input$comuna)
+  })
+  
   datos_filtrados <- reactive({
     req(length(input$delitos) > 0)
     req(length(input$delitos) <= 8)
-    req(length(input$comuna) == 1)
     
     message("datos filtrados")
-    delincuencia |> 
-      filter(comuna == input$comuna) |> 
+    
+    datos_comuna() |> 
       filter(delito %in% input$delitos)
   })
   
@@ -313,6 +471,19 @@ server <- function(input, output, session) {
              alterno = ifelse(alterno %% 2 == 0, color_fondo, color_secundario))
   })
   
+  presidentes_fecha <- reactive({
+    presidentes |> 
+      group_by(presidente) |> 
+      mutate(id = 1:n()) |> 
+      ungroup() |> 
+      mutate(presidente_id = paste(str_remove(presidente, "\\w+$"), id)) |> 
+      mutate(fecha = fecha_inicio) |> 
+      tidyr::complete(fecha = seq(paste0(presidentes$fecha_inicio |> min() |> year(), "-01-01") |> ymd(), 
+                                  paste0(delincuencia$fecha |> max() |> year(), "-12-01") |> ymd(), 
+                                  by='months')) |>
+      arrange(desc(fecha)) |> 
+      tidyr::fill(c(presidente, presidente_id, fecha_inicio, fecha_termino), .direction = "downup")
+  })
   
   # pandemia ----
   fecha_inicio_pandemia = reactive(dmy("11-03-2020"))
@@ -343,12 +514,18 @@ server <- function(input, output, session) {
   })
   
   
+  output$comuna3 <- output$comuna2 <- output$comuna1 <- output$comuna <- renderText({
+    req(input$comuna)
+    input$comuna
+  })
   
-  
-  #grafico ----
+  #grafico líneas ----
   output$grafico <- renderPlot({
     req(datos())
     message("grafico...")
+    
+    transparencia_periodos = 0.1
+    transparencia_pandemia = 0.2
     
     # browser()
     p <- datos() |> 
@@ -380,34 +557,60 @@ server <- function(input, output, session) {
                  color = color_texto, alpha = transparencia_pandemia, 
                  vjust = 0, hjust = 0)
     }
+    
     p <- p +
       #línea delitos
-      geom_line(linewidth = 1, lineend = "round")
+      geom_line(linewidth = 1, lineend = "round", alpha = 0.8)
+    
     
     if (input$promedios) {
+      
+      color_piñera = ifelse(promedio_delitos_periodo_boric() > promedio_delitos_periodo_piñera(),
+                            color_positivo, color_negativo)
+      color_boric = ifelse(promedio_delitos_periodo_boric() < promedio_delitos_periodo_piñera(),
+                           color_positivo, color_negativo)
+      
       #marca promedios por periodo
       p <- p +
-        # geom_hline(yintercept = promedio_delitos_periodo_piñera, color = "red") +
+        #línea piñera
         annotate(geom = "segment",
                  y = promedio_delitos_periodo_piñera(), yend = promedio_delitos_periodo_piñera(), 
                  x = piñera()$presidente_fecha_inicio, xend = piñera()$presidente_fecha_termino,
-                 color = color_secundario, linewidth = 1) +
+                 color = color_fondo, linewidth = 2.5) + #sombra
+        annotate(geom = "segment",
+                 y = promedio_delitos_periodo_piñera(), yend = promedio_delitos_periodo_piñera(), 
+                 x = piñera()$presidente_fecha_inicio, xend = piñera()$presidente_fecha_termino,
+                 color = color_piñera, linewidth = 1) +
+        #línea boric
         annotate(geom = "segment",
                  y = promedio_delitos_periodo_boric(), yend = promedio_delitos_periodo_boric(), 
                  x = boric()$presidente_fecha_inicio, xend = boric()$presidente_fecha_termino,
-                 color = color_secundario, linewidth = 1) +
+                 color = color_fondo, linewidth = 2.5) + #sombra
+        annotate(geom = "segment",
+                 y = promedio_delitos_periodo_boric(), yend = promedio_delitos_periodo_boric(), 
+                 x = boric()$presidente_fecha_inicio, xend = boric()$presidente_fecha_termino,
+                 color = color_boric, linewidth = 1) +
+        #flecha
         annotate(geom = "segment", 
                  x = boric()$presidente_fecha_inicio, xend = boric()$presidente_fecha_inicio,
                  y = promedio_delitos_periodo_piñera(), yend = promedio_delitos_periodo_boric(),
-                 color = color_secundario, linewidth = 1, arrow = arrow(length = unit(0.02, "npc")))
+                 color = color_fondo,
+                 linewidth = 2.5, lineend= "round", arrow = arrow(length = unit(0.02, "npc"))) + #sombra
+        annotate(geom = "segment", 
+                 x = boric()$presidente_fecha_inicio, xend = boric()$presidente_fecha_inicio,
+                 y = promedio_delitos_periodo_piñera(), yend = promedio_delitos_periodo_boric(),
+                 color = color_boric,
+                 linewidth = 1, lineend= "round", arrow = arrow(length = unit(0.02, "npc")))
     }
+    
+    
     
     p <- p +
       #escalas
       scale_x_date(limits = c(min(datos()$fecha), max(datos()$fecha)),
                    expand = c(0, 0), oob = scales::squish, 
                    date_breaks = "years", date_labels = "%Y") +
-      scale_y_continuous(expand = expansion(c(0, 0.015))) +
+      scale_y_continuous(expand = expansion(c(0, 0.015)), labels = ~format(.x, big.mark = ".")) +
       scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
       coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
       #temas
@@ -440,8 +643,160 @@ server <- function(input, output, session) {
     }
     
     plot(p)
+  }, res = 95)
+  
+  
+  #gráfico barras delitos anuales ----
+  output$grafico_anuales <- renderPlot({
+    
+    #delitos por año
+    datos <- datos_comuna() |> 
+      mutate(año = year(fecha)) |> 
+      group_by(comuna, año) |> 
+      summarize(delitos = sum(delitos))
+    
+    datos |> 
+      ggplot(aes(as.factor(año), delitos)) +
+      geom_hline(yintercept = mean(datos$delitos), linetype = "dashed", color = color_destacado, linewidth = 1) +
+      geom_col(fill = color_secundario, width = 0.5) +
+      geom_text(aes(label = format(delitos, big.mark ="."),
+                    y = delitos * 0.99),
+                hjust = 0, angle = -90, color = color_texto, fontface = "bold") +
+      
+      scale_y_continuous(expand = expansion(c(0.01, 0.03)), labels = ~format(.x, big.mark = ".")) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            axis.ticks = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            axis.title = element_text(color = color_secundario),
+            axis.title.y = element_text(margin = margin(r = 8)),
+            axis.title.x = element_text(margin = margin(t = 8)),
+            axis.text.x = element_text()) +
+      theme(panel.background = element_rect(fill = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      labs(y = paste("Cantidad de delitos anuales"),
+           x = paste("Delitos totales anuales en la comuna de", input$comuna))
   }, res = 90)
   
+  #gráfico barras delitos principales ---- 
+  
+  output$grafico_principales <- renderPlot({
+    # req(input$fecha[1] > 2000)
+    
+    datos <- datos_comuna() |> 
+      mutate(año = year(fecha)) |> 
+      filter(año >= year(input$fecha[1])) |> 
+      group_by(comuna, año, delito) |>
+      summarize(delitos = sum(delitos)) |> 
+      arrange(desc(año), desc(delitos)) |> 
+      group_by(año) |> 
+      slice_max(delitos, n = 3) |> 
+      group_by(año) |> 
+      mutate(delito = delito |> str_wrap(16) |> as.factor() |> fct_reorder2(año, delitos))
+    
+    maximos <- datos |> 
+      group_by(delito) |> 
+      slice_max(delitos)
+    
+    
+    datos |> 
+      ggplot(aes(delito, delitos, 
+                 fill = delito, color = delito)) +
+      #lineas de maximos
+      geom_hline(data = maximos |> select(-año),
+                 aes(yintercept = delitos, color = delito),
+                 linetype = "dashed", linewidth = 0.8, alpha = 0.8) +
+      geom_col(position = position_dodge2(), width = 0.5) +
+      ggrepel::geom_text_repel(data = maximos |> rename(año_max = año) |> mutate(año = max(datos$año)),
+                               aes(label = glue(" {año_max}: {format(delitos, big.mark='.')}"),
+                                   x = 4), hjust = 0, vjust = 0.5, size = 3,
+                               direction = "y", xlim = c(4.5, Inf)
+      ) +
+      geom_text(data = datos |> filter(año == max(datos$año)),
+                aes(label = format(delitos, big.mark='.'),
+                    y = delitos*1.04),
+                hjust = 1, vjust = 0.5, angle = -90, size = 3
+      ) +
+      facet_wrap(~año, nrow = 1, scales = "free_x", strip.position = "bottom") +
+      scale_y_continuous(expand = expansion(c(0.02, 0.05)), labels = ~format(.x, big.mark = ".")) +
+      scale_fill_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      coord_cartesian(clip = "off") +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            axis.ticks = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            axis.title = element_text(color = color_secundario),
+            axis.text.x = element_blank())+
+      theme(strip.background = element_rect(fill = color_secundario),
+            strip.text = element_text(color = color_texto)) +
+      theme(plot.margin = unit(c(0, 25, 0, 0), "mm")) +
+      theme(legend.position = "bottom",
+            legend.title = element_blank(), 
+            legend.key = element_rect(fill = color_fondo),
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(r=8, t = 4, b = 4))) +
+      theme(panel.background = element_rect(fill = color_detalle), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      labs(y = paste("Delitos anuales en", input$comuna),
+           x = paste("Delitos principales de la comuna de ", input$comuna, "en cada año")
+      ) +
+      guides (fill = guide_legend(nrow = 2, keywidth = unit(1, "mm")))
+  }, res = 95)
+  
+  
+  #gráfico mensuales promedio presidente ----
+  output$grafico_presidentes_dias <- renderPlot({
+    # browser()
+    #delitos diarios promedio durante el periodo de cada presidente
+    datos <- datos_comuna() |> 
+      #poner presidentes de cada fecha
+      left_join(presidentes_fecha(), join_by(fecha)) |> 
+      mutate(presidente_id = presidente_id |> str_remove_all (" 1") |> 
+               fct_reorder(fecha)) |>
+      mutate(presidente_id = presidente_id|> fct_rev()) |> 
+      #meses
+      mutate(año = year(fecha),
+             mes = month(fecha)) |> 
+      group_by(comuna, año, mes, presidente_id) |> 
+      summarize(delitos = sum(delitos)) |> #delitos totales mensuales
+      group_by(comuna, presidente_id) |> 
+      summarize(delitos = mean(delitos)) #promedio de delitos mensuales
+    
+    datos |> 
+      ggplot(aes(y = presidente_id, 
+                 x = delitos)) +
+      geom_col(fill = color_secundario, width = 0.5) +
+      geom_text(aes(label = format(round(delitos, 0), big.mark = ".", decimal.mark = ","),
+                    x = delitos * 0.98),
+                hjust = 1, color = color_texto, fontface = "bold") +
+      geom_vline(xintercept = max(datos$delitos), linetype = "dashed", color = color_negativo, linewidth = 1) +
+      geom_vline(xintercept = min(datos$delitos), linetype = "dashed", color = color_positivo, linewidth = 1) +
+      scale_x_continuous(expand = expansion(c(0, 0.05))) +
+      scale_y_discrete(expand = expansion(0.1)) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            axis.ticks = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            axis.title = element_text(color = color_secundario),
+            axis.title.y = element_text(margin = margin(r = 8)),
+            axis.text.x = element_blank()) +
+      theme(panel.background = element_rect(fill = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      labs(y = paste("Periodo presidencial"),
+           x = "Promedio de delitos mensuales por periodo presidencial")
+  }, res = 95)
 }
 
 

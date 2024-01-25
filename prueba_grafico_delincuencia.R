@@ -9,7 +9,7 @@ library(forcats)
 delincuencia <- arrow::read_parquet("datos/cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
 
-periodos_presidenciales_0 <- readr::read_csv("datos/periodos_presidenciales_chile.csv", show_col_types = F) |> 
+periodos_presidenciales_0 <- readr::read_csv("datos/periodos_presidenciales_chile.csv", show_col_types = F) |>
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
 
 
