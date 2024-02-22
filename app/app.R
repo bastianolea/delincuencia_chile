@@ -45,6 +45,7 @@ ui <- fluidPage(
     bs_vars_font(size_base = "14px", #aumentar globalmente tamaño de letra  
                  family_sans_serif = "Open Sans" #cargar fuente o tipo de letra
     ),
+    bs_vars_color(brand_primary = color_secundario),
     bs_vars_button(
       default_color = color_fondo,
       default_bg = color_secundario,
@@ -301,9 +302,27 @@ ui <- fluidPage(
     
     #grafico líneas----
     column(8,
-           plotOutput("grafico", width = "100%", height = 720) |> 
-             withSpinner(color = color_secundario, type = 8),
            
+           # tabsetPanel(type = "pills", id = "pest"),
+           radioGroupButtons("pest", 
+                             choices = c("Comuna", "Región"), 
+                             individual = TRUE
+           ),
+           # tabPanel("Comuna",
+           
+           # h3("Ocurrencia de delitos en la comuna de", textOutput("comuna4", inline = T)),
+           h3(textOutput("titulo_grafico_linea")),
+           plotOutput("grafico_comuna", width = "100%", height = 720) |> 
+             withSpinner(color = color_secundario, type = 8)
+           # ),
+           
+           # tabPanel("Región",
+           
+           #          h3("Ocurrencia de delitos en la región", textOutput("region1", inline = T)),
+           #          plotOutput("grafico_region", width = "100%", height = 720) |> 
+           #            withSpinner(color = color_secundario, type = 8)
+           # )
+           # )
            
     )
   ),
@@ -340,10 +359,16 @@ ui <- fluidPage(
            hr(),
            p("Diseñado y programado por",
              tags$a("Bastián Olea Herrera.", target = "_blank", href = "https://bastian.olea.biz")),
-           p(
-             "Código de fuente de esta app y del procesamiento de los datos",
+           
+           p("Puedes explorar mis otras",
+             tags$a("aplicaciones interactivas sobre datos sociales aquí.",
+                    href = "https://bastianolea.github.io/shiny_apps/", target = "_blank")
+           ),
+           
+           p("Código de fuente de esta app y del procesamiento de los datos",
              tags$a("disponible en GitHub.", target = "_blank", href = "https://github.com/bastianolea/delincuencia_chile")
            ),
+           
            p("Los datos se obtuvieron desde CEAD haciendo uso de",
              tags$a("técnicas de web scraping en R, detalladas en este tutorial.",
                     href = "https://bastianolea.github.io/tutorial_r_datos_delincuencia/",
@@ -400,13 +425,20 @@ server <- function(input, output, session) {
   
   
   #datos ----
-  datos_comuna <- reactive({
+  datos_unidad <- reactive({
     req(length(input$comuna) == 1)
+    req(length(input$region) == 1)
     
     message("datos comuna")
     
-    delincuencia |> 
-      filter(comuna == input$comuna)
+    
+    if (input$pest == "Comuna") {
+      delincuencia |> 
+        filter(comuna == input$comuna)
+    } else {
+      delincuencia |> 
+        filter(region == input$region) 
+    }
   })
   
   datos_filtrados <- reactive({
@@ -415,8 +447,9 @@ server <- function(input, output, session) {
     
     message("datos filtrados")
     
-    datos_comuna() |> 
+    datos_unidad() |> 
       filter(delito %in% input$delitos)
+    # browser()
   })
   
   #sumar datos ----
@@ -435,6 +468,13 @@ server <- function(input, output, session) {
         mutate(delito = "Suma de delitos")
     }
     
+    if (input$pest == "Región") {
+      datos_1 <- datos_1 |>
+        group_by(fecha, region, cut_region, delito) |> 
+        summarize(delitos = sum(delitos, na.rm = T)) 
+    }
+    
+    # browser()
     return(datos_1)
   })
   
@@ -524,13 +564,27 @@ server <- function(input, output, session) {
   })
   
   
-  output$comuna3 <- output$comuna2 <- output$comuna1 <- output$comuna <- renderText({
+  output$comuna4 <- output$comuna3 <- output$comuna2 <- output$comuna1 <- output$comuna <- renderText({
     req(input$comuna)
     input$comuna
   })
   
+  output$region1 <- renderText({
+    req(input$region)
+    input$region
+  })
+  
   #grafico líneas ----
-  output$grafico <- renderPlot({
+  
+  output$titulo_grafico_linea <- renderText({
+    if (input$pest == "Comuna") {
+      paste("Ocurrencia de delitos en la comuna de", input$comuna)
+    } else {
+      paste("Ocurrencia de delitos en la región", input$region)
+    }
+  })
+  
+  output$grafico_comuna <- renderPlot({
     req(length(input$comuna) == 1)
     req(datos())
     message("grafico...")
@@ -669,17 +723,25 @@ server <- function(input, output, session) {
   output$grafico_anuales <- renderPlot({
     req(length(input$comuna) == 1)
     
+    # browser()
     #delitos por año
-    datos <- datos_comuna() |> 
-      mutate(año = year(fecha)) |> 
-      group_by(comuna, año) |> 
-      summarize(delitos = sum(delitos))
+    if (input$pest == "Comuna") {
+      datos <- datos_unidad() |> 
+        mutate(año = year(fecha)) |> 
+        group_by(comuna, año) |> 
+        summarize(delitos = sum(delitos, na.rm = T))
+    } else {
+      datos <- datos_unidad() |> 
+        mutate(año = year(fecha)) |> 
+        group_by(region, año) |> 
+        summarize(delitos = sum(delitos, na.rm = T))
+    }
     
     datos |> 
       ggplot(aes(as.factor(año), delitos)) +
       geom_hline(yintercept = mean(datos$delitos), linetype = "dashed", color = color_destacado, linewidth = 1) +
       geom_col(fill = color_secundario, width = 0.5) +
-      geom_text(aes(label = format(delitos, big.mark ="."),
+      geom_text(aes(label = format(round(delitos, 0), big.mark =".", decimal.mark = ","),
                     y = delitos * 0.99),
                 hjust = 0, angle = -90, color = color_texto, fontface = "bold") +
       
@@ -705,40 +767,54 @@ server <- function(input, output, session) {
   #gráfico barras delitos principales ---- 
   output$grafico_principales <- renderPlot({
     req(length(input$comuna) == 1)
+    req(length(input$region) == 1)
     
-    datos <- datos_comuna() |> 
+    datos_0 <- datos_unidad() |> 
       mutate(año = year(fecha)) |> 
-      filter(año >= year(input$fecha[1])) |> 
-      group_by(comuna, año, delito) |>
-      summarize(delitos = sum(delitos)) |> 
+      filter(año >= year(input$fecha[1]))
+    
+    if (input$pest == "Comuna") {
+      datos_1 <- datos_0 |> 
+        group_by(comuna, año, delito) |>
+        summarize(delitos = sum(delitos))
+    } else {
+      # browser()
+      datos_1 <- datos_0 |> 
+        group_by(region, año, delito) |>
+        summarize(delitos = sum(delitos))
+    }
+    
+    datos_2 <- datos_1 |> 
       arrange(desc(año), desc(delitos)) |> 
       group_by(año) |> 
       slice_max(delitos, n = 3) |> 
       group_by(año) |> 
       mutate(delito = delito |> str_wrap(16) |> as.factor() |> fct_reorder2(año, delitos))
     
-    maximos <- datos |> 
+    # browser()
+    maximos <- datos_1 |> 
       group_by(delito) |> 
       slice_max(delitos)
     
-    
-    datos |> 
+    # browser()
+    datos_2 |> 
       ggplot(aes(delito, delitos, 
                  fill = delito, color = delito)) +
       #lineas de maximos
       geom_hline(data = maximos |> select(-año),
                  aes(yintercept = delitos, color = delito),
-                 linetype = "dashed", linewidth = 0.8, alpha = 0.8) +
+                 linetype = "solid", linewidth = 0.7, alpha = 0.6) +
       geom_col(position = position_dodge2(), width = 0.5) +
-      ggrepel::geom_text_repel(data = maximos |> rename(año_max = año) |> mutate(año = max(datos$año)),
+      ggrepel::geom_text_repel(data = maximos |> rename(año_max = año) |> mutate(año = max(datos_2$año)),
                                aes(label = glue(" {año_max}: {format(delitos, big.mark='.')}"),
                                    x = 4), hjust = 0, vjust = 0.5, size = 3,
                                direction = "y", xlim = c(4.5, Inf)
       ) +
-      geom_text(data = datos |> filter(año == max(datos$año)),
-                aes(label = format(delitos, big.mark='.'),
-                    y = delitos*1.04),
-                hjust = 1, vjust = 0.5, angle = -90, size = 3
+      geom_text(data = datos_2 |> filter(año == max(datos_2$año)),
+                aes(label = paste(" ", format(delitos, big.mark='.', trim = T)),
+                    y = delitos),
+                color = color_fondo, fontface = "bold",
+                hjust = 0, vjust = 0.5, angle = -90, size = 2.2
       ) +
       facet_wrap(~año, nrow = 1, scales = "free_x", strip.position = "bottom") +
       scale_y_continuous(expand = expansion(c(0.02, 0.05)), labels = ~format(.x, big.mark = ".")) +
@@ -776,7 +852,7 @@ server <- function(input, output, session) {
     req(length(input$comuna) == 1)
     # browser()
     #delitos diarios promedio durante el periodo de cada presidente
-    datos <- datos_comuna() |> 
+    datos <- datos_unidad() |> 
       #poner presidentes de cada fecha
       left_join(presidentes_fecha(), join_by(fecha)) |> 
       mutate(presidente_id = presidente_id |> str_remove_all (" 1") |> 
