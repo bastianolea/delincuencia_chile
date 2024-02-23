@@ -11,6 +11,8 @@ library(fresh)
 library(shinycssloaders)
 library(shinyjs)
 
+options(scipen = 9999)
+
 delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
 
@@ -210,6 +212,12 @@ ui <- fluidPage(
          }
   ")),
   
+  #estilo radio buttons
+  css(".btn-default.active, .btn-default:focus, .btn-default:active:focus {
+      color: {{color_texto}} !important;
+      border: none;
+  }"),
+  
   
   #—----
   
@@ -221,21 +229,11 @@ ui <- fluidPage(
                em("Bastián Olea Herrera")
            ),
            
-           p("En este visualizador se presentan gráficos con datos estadísticas delictuales entregadas por el", 
-             tags$a("Centro de Estudio y Análisis del Delito (CEAD),", 
-                    href = "https://cead.spd.gov.cl/estadisticas-delictuales/",
-                    target = "_blank"),
-             "quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública."), 
+           markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública."), 
            
-           p("Según el",
-             tags$a("CEAD,",
-                    href = "https://cead.spd.gov.cl/estadisticas-delictuales/",
-                    target = "_blank"),
-             "cada dato se compone por: ",
-             em("denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito.")
-           ),
+           markdown("Según el [CEAD](https://cead.spd.gov.cl/estadisticas-delictuales/), cada dato se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._"),
            
-           p("El objetivo de esta plataforma es transparentar datos objetivos de la delincuencia en el país, 
+           markdown("El objetivo de esta plataforma es transparentar **datos objetivos sobre la delincuencia en el país,** 
              otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político."
            ),
            
@@ -246,8 +244,13 @@ ui <- fluidPage(
   #selectores ----
   fluidRow(
     column(4,
+           
+           div(style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}"),
+           em("Seleccione una región, y opcionalmente una comuna, y luego seleccione si desea visualizar los datos a nivel regional o comunal. Por defecto se elige una comuna al azar."),
+           ),
+              
            pickerInput("region", 
-                       label = h4("Región:"),
+                       label = h4("Región"),
                        width = "100%",
                        choices = as.character(unique(delincuencia$region)),
                        selected = "Metropolitana de Santiago", 
@@ -255,7 +258,7 @@ ui <- fluidPage(
            ),
            
            pickerInput("comuna",
-                       label = h4("Comuna:"),
+                       label = h4("Comuna"),
                        width = "100%",
                        multiple = FALSE,
                        choices = NULL,
@@ -263,9 +266,57 @@ ui <- fluidPage(
            ),
            actionButton("azar_comuna", "Elegir comuna al azar", style = "margin-bottom: 14px;"),
            
+           radioGroupButtons("unidad", 
+                             h4("Unidad a visualizar:"), 
+                             choices = c("Comuna" = "comuna", "Región" = "region"), 
+                             width = "100%", justified = T, individual = F),
+           
+           div(style = "margin-top: 24px; margin-bottom: 12px;",
+               actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
+                            size = "xs",
+                            style = glue("margin: auto; height: 28px; 
+                        font-size: 84%; padding-top: 5px; 
+                        background-color: {color_detalle};
+                        color: {color_enlaces};")
+               )
+           ),
+           
+           div(id = "opciones",
+               sliderTextInput(
+                 inputId = "suavizar",
+                 label = h4("Suavizar datos"), 
+                 choices = c("21 días", "14 días", "7 días", "No") |> rev(),
+                 selected = "14 días", 
+               ),
+               
+               shinyWidgets::awesomeCheckbox("sumar", label = "Sumar delitos", value = FALSE),
+               
+               shinyWidgets::awesomeCheckbox("tendencia", label = "Mostrar tendencia", value = FALSE),
+               
+               shinyWidgets::awesomeCheckbox("promedios", label = "Mostrar promedios", value = TRUE),
+               
+               shinyWidgets::awesomeCheckbox("pandemia", label = "Mostrar pandemia", value = TRUE),
+               
+               sliderInput(
+                 inputId = "fecha",
+                 label = h4("Rango de fechas"),
+                 min = dmy("11-03-2010"),
+                 max = today(), width = "100%",
+                 # value = c(dmy("11-03-2010"), today()), 
+                 value = c(dmy("01-01-2017"), today()), 
+                 timeFormat = "%Y"
+               )
+           ) |> hidden()
+           
+    ),
+    
+    #grafico líneas----
+    column(8,
+           h2(textOutput("titulo_grafico_lineas")),
+           p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo."),
            
            pickerInput("delitos",
-                       label = h4("Delitos:"),
+                       label = h4("Delitos"),
                        width = "100%",
                        multiple = TRUE,
                        choices = as.character(unique(delincuencia$delito)),
@@ -276,47 +327,6 @@ ui <- fluidPage(
                                       width = FALSE)
            ),
            
-           div(style = "margin-top: 24px; margin-bottom: 12px;",
-           actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
-                        size = "xs",
-                        style = glue("margin: auto; height: 28px; 
-                        font-size: 84%; padding-top: 5px; 
-                        background-color: {color_detalle};
-                        color: {color_enlaces};")
-           )
-           ),
-           
-           div(id = "opciones",
-           sliderTextInput(
-             inputId = "suavizar",
-             label = h4("Suavizar datos"), 
-             choices = c("21 días", "14 días", "7 días", "No") |> rev(),
-             selected = "14 días", 
-           ),
-           
-           shinyWidgets::awesomeCheckbox("sumar", label = "Sumar delitos", value = FALSE),
-           
-           shinyWidgets::awesomeCheckbox("tendencia", label = "Mostrar tendencia", value = FALSE),
-           
-           shinyWidgets::awesomeCheckbox("promedios", label = "Mostrar promedios", value = TRUE),
-           
-           shinyWidgets::awesomeCheckbox("pandemia", label = "Mostrar pandemia", value = TRUE),
-           
-           sliderInput(
-             inputId = "fecha",
-             label = h4("Rango de fechas"),
-             min = dmy("11-03-2010"),
-             max = today(), width = "100%",
-             # value = c(dmy("11-03-2010"), today()), 
-             value = c(dmy("01-01-2017"), today()), 
-             timeFormat = "%Y"
-           )
-           ) |> hidden()
-           
-    ),
-    
-    #grafico líneas----
-    column(8,
            plotOutput("grafico", width = "100%", height = 720) |> 
              withSpinner(color = color_secundario, type = 8),
            
@@ -327,15 +337,18 @@ ui <- fluidPage(
   #gráfico anuales y presidentes ----
   fluidRow(
     column(7,
-           h2("Delitos anuales en", textOutput("comuna1", inline = T)),
+           h2(textOutput("titulo_grafico_anual")),
+           p("Esta visualización representa la evolución de la cantidad de delitos totales ocurridos por año en la comuna o región seleccionada, indicando cambios históricos en la delincuencia. Las líneas horizontales destacan los puntos mínimos, promedio y máximos de la cantidad anual de delitos, en colores verde, naranjo y rojo, respectivamente."),
+           
            plotOutput("grafico_anuales", height = 400) |> 
              withSpinner(color = color_secundario, type = 8)
     ),
     column(5, style = "height: 400;",
-           h2("Promedio de delitos mensuales en", textOutput("comuna3", inline = T), "por periodo presidencial"),
-           div(style = "padding-top: 48px; padding-bottom: 48px;",
-               
-               plotOutput("grafico_presidentes_dias", height = 260) |> 
+           h2(textOutput("titulo_grafico_presidentes")),
+           p("Las barras de este gráfico representan cada uno de los periodos presidenciales más recientes, y la cifra indicada corresponde a la cantidad de delitos mensuales promedio ocurridos en dicho periodo. Esto permite comparar la frecuencia con la que acontecieron delitos en cada gobierno."),
+           
+           div(style = "padding-top: 24px; padding-bottom: 48px;",
+               plotOutput("grafico_presidentes", height = 260) |> 
                  withSpinner(color = color_secundario, type = 8)
            )
     )
@@ -344,9 +357,13 @@ ui <- fluidPage(
   #gráfico delitos principales por año ----
   fluidRow(
     column(12,
-           h2("Delitos principales por año en", textOutput("comuna2", inline = T)),
+             h2(textOutput("titulo_delitos_principales")),
+           p("En este gráfico se representan, por cada año del que se poseen datos oficiales, los tres delitos más frecuentes en la comuna o región elegida. El color de cada barra corresponde a un delito distinto, indicado en la leyenda de abajo. Al costado derecho del gráfico se presentan las cifras y años donde cada uno de los principales delitos alcanzó su máximo."),
+           
+           div(style = "margin-top: 24px;",
            plotOutput("grafico_principales", height = 600) |> 
              withSpinner(color = color_secundario, type = 8)
+           )
     )
   ),
   
@@ -354,23 +371,16 @@ ui <- fluidPage(
   fluidRow(
     column(12, style = "padding: 28px; font-size: 90%;",
            hr(),
-           p("Desarrollado por",
-             tags$a("Bastián Olea Herrera.", target = "_blank", href = "https://bastian.olea.biz")),
+           
+           markdown("Desarrollado en R+Shiny por [Bastián Olea Herrera.](https://bastian.olea.biz)"),
            
            markdown("Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)"),
            
            markdown("Fuente de los datos: [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/)"),
            
-           p(
-             "Código de fuente de esta app y del procesamiento de los datos",
-             tags$a("disponible en GitHub.", target = "_blank", href = "https://github.com/bastianolea/delincuencia_chile")
-           ),
-           p("Los datos se obtuvieron desde CEAD haciendo uso de",
-             tags$a("técnicas de web scraping en R, detalladas en este tutorial.",
-                    href = "https://bastianolea.github.io/tutorial_r_datos_delincuencia/",
-                    target = "_blank")
-           )
+           markdown("Código de fuente de esta app y del procesamiento de los datos [disponible en GitHub.](https://github.com/bastianolea/delincuencia_chile)"),
            
+           markdown("Los datos se obtuvieron desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial](https://bastianolea.github.io/tutorial_r_datos_delincuencia/)")
     )
   )
   
@@ -437,7 +447,17 @@ server <- function(input, output, session) {
     req(length(input$region) == 1)
     
     delincuencia |> 
-      filter(region == input$region)
+      filter(region == input$region) |> 
+      summarize(delitos = sum(delitos), .by = c(fecha, delito, region))
+    # browser()
+  })
+  
+  datos_unidad <- reactive({
+    if (input$unidad == "comuna") {
+      datos <- datos_comuna() |> rename(unidad = comuna)
+    } else if (input$unidad == "region") {
+      datos <- datos_region() |> rename(unidad = region)
+    }
   })
   
   ## datos delito ----
@@ -445,8 +465,14 @@ server <- function(input, output, session) {
     req(length(input$delitos) > 0)
     req(length(input$delitos) <= 8)
     
-    datos_comuna() |> 
-      filter(delito %in% input$delitos)
+    # if (input$unidad == "comuna") {
+    #   datos_comuna() |> filter(delito %in% input$delitos) |> 
+    #     rename(unidad = comuna)
+    # } else if (input$unidad == "region") {
+    #   datos_region() |> filter(delito %in% input$delitos) |> 
+    #     rename(unidad = region)
+    # }
+    datos_unidad() |> filter(delito %in% input$delitos)
   })
   
   ## sumar datos ----
@@ -458,7 +484,7 @@ server <- function(input, output, session) {
       
     } else if (input$sumar == TRUE) {
       datos_filtrados_2 <- datos_filtrados() |> 
-        group_by(fecha, comuna, region, cut_comuna, cut_region) |> 
+        group_by(fecha, unidad) |> 
         summarize(delitos = sum(delitos, na.rm = T), .groups = "drop") |> 
         mutate(delito = "Suma de delitos")
     }
@@ -486,7 +512,7 @@ server <- function(input, output, session) {
   datos <- reactive(datos_suavizados())
   
   delitos_maximo <- reactive(max(datos()$delitos_mm))
-
+  
   
   
   ## presidentes ----
@@ -503,7 +529,6 @@ server <- function(input, output, session) {
   })
   
   presidentes_fecha <- reactive({
-    # browser()
     presidentes <- periodos_presidenciales_0 |> 
       select(presidente, fecha_inicio = presidente_fecha_inicio, fecha_termino = presidente_fecha_termino)
     
@@ -555,6 +580,15 @@ server <- function(input, output, session) {
   })
   
   # textos ----
+  
+  texto_unidad <- reactive({
+    if (input$unidad == "comuna") {
+      input$comuna
+    } else if (input$unidad == "region") {
+      input$region
+    }
+  })
+  
   output$comuna3 <- output$comuna2 <- output$comuna1 <- output$comuna <- renderText({
     req(input$comuna)
     input$comuna
@@ -564,6 +598,54 @@ server <- function(input, output, session) {
     req(input$region)
     input$region
   })
+  
+  
+  output$titulo_grafico_lineas <- renderText({
+    if (input$unidad == "comuna") {
+      paste("Ocurrencia de delitos en la comuna de", input$comuna)
+    } else if (input$unidad == "region") {
+      if (input$region == "Metropolitana de Santiago") {
+        paste("Ocurrencia de delitos en la región", input$region)
+      } else {
+        paste("Ocurrencia de delitos en", input$region)
+      }
+    }
+  })
+  
+  
+  texto_unidad_redactado <- reactive({
+    req(length(input$comuna) > 0)
+    req(length(input$region) > 0)
+    
+    if (input$unidad == "comuna") {
+      paste("la comuna de", input$comuna)
+      
+    } else if (input$unidad == "region") {
+      if (input$region == "Metropolitana de Santiago") {
+        paste("la región", input$region)
+        
+      } else if (input$region %in% c("Maule", "Libertador Gral. Bernardo O'Higgins")) {
+        paste("la región del", input$region)
+        
+      } else {
+        paste("la región de", input$region)
+      }
+    }
+  })
+  
+  
+  output$titulo_grafico_anual <- renderText({
+    paste("Delitos totales al año en", texto_unidad_redactado())
+  })
+  
+  output$titulo_grafico_presidentes <- renderText({
+    paste("Promedio de delitos mensuales en", texto_unidad_redactado(), "por periodo presidencial")
+  })
+  
+  output$titulo_delitos_principales <- renderText({
+    paste("Delitos principales por año en", texto_unidad_redactado())
+  })
+  
   
   # gráficos ----
   ## gráfico líneas ----
@@ -693,10 +775,8 @@ server <- function(input, output, session) {
             legend.text = element_text(color = color_texto, size = 10, margin = margin(r = 6))) +
       theme(panel.background = element_blank(), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
-      labs(y = paste("Cantidad de delitos en", input$comuna),
+      labs(y = paste("Cantidad de delitos en", texto_unidad_redactado()),
            x = NULL)
-    
-    
     
     plot(p)
   }, res = 95)
@@ -707,19 +787,20 @@ server <- function(input, output, session) {
     req(length(input$comuna) == 1)
     
     #delitos por año
-    datos <- datos_comuna() |> 
+    datos <- datos_unidad() |> 
       mutate(año = year(fecha)) |> 
-      group_by(comuna, año) |> 
+      group_by(año) |> 
       summarize(delitos = sum(delitos), .groups = "drop")
     
     datos |> 
       ggplot(aes(as.factor(año), delitos)) +
-      geom_hline(yintercept = mean(datos$delitos), linetype = "dashed", color = color_destacado, linewidth = 1) +
+      geom_hline(yintercept = mean(datos$delitos), linetype = "solid", color = color_destacado, linewidth = 1, alpha = .8) +
+      geom_hline(yintercept = min(datos$delitos), linetype = "solid", color = color_positivo, linewidth = 1, alpha = .8) +
+      geom_hline(yintercept = max(datos$delitos), linetype = "solid", color = color_negativo, linewidth = 1, alpha = .8) +
       geom_col(fill = color_secundario, width = 0.5) +
-      geom_text(aes(label = format(delitos, big.mark =".", decimal.mark = ","),
+      geom_text(aes(label = format(round(delitos, 0), big.mark = ".", decimal.mark = ","),
                     y = delitos * 0.99),
                 hjust = 0, angle = -90, color = color_texto, fontface = "bold") +
-      
       scale_y_continuous(expand = expansion(c(0.01, 0.03)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
       #temas
       theme(text = element_text(color = color_texto),
@@ -736,17 +817,21 @@ server <- function(input, output, session) {
       theme(panel.background = element_rect(fill = color_fondo), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Cantidad de delitos anuales"),
-           x = paste("Delitos totales anuales en la comuna de", input$comuna))
+           x = paste("Delitos totales anuales en", texto_unidad_redactado())
+           )
   }, res = 90)
+  
   
   ## gráfico barras delitos principales ---- 
   output$grafico_principales <- renderPlot({
     req(length(input$comuna) == 1)
     
-    datos <- datos_comuna() |> 
+    # browser()
+    
+    datos <- datos_unidad() |> 
       mutate(año = year(fecha)) |> 
       filter(año >= year(input$fecha[1])) |> 
-      group_by(comuna, año, delito) |>
+      group_by(año, delito) |>
       summarize(delitos = sum(delitos), .groups = "drop") |> 
       arrange(desc(año), desc(delitos)) |> 
       group_by(año) |> 
@@ -764,15 +849,15 @@ server <- function(input, output, session) {
       #lineas de maximos
       geom_hline(data = maximos |> select(-año),
                  aes(yintercept = delitos, color = delito),
-                 linetype = "dashed", linewidth = 0.8, alpha = 0.8) +
+                 linetype = "solid", linewidth = 0.8, alpha = 0.4) +
       geom_col(position = position_dodge2(), width = 0.5) +
       ggrepel::geom_text_repel(data = maximos |> rename(año_max = año) |> mutate(año = max(datos$año)),
-                               aes(label = glue(" {año_max}: {format(delitos, big.mark='.', decimal.mark = ',')}"),
+                               aes(label = glue(" {año_max}: {format(round(delitos, 0), big.mark='.', decimal.mark = ',')}"),
                                    x = 4), hjust = 0, vjust = 0.5, size = 3,
                                direction = "y", xlim = c(4.5, Inf)
       ) +
       geom_text(data = datos |> filter(año == max(datos$año)),
-                aes(label = format(delitos, big.mark='.', decimal.mark = ","),
+                aes(label = format(round(delitos, 0), big.mark='.', decimal.mark = ","),
                     y = delitos*1.04),
                 hjust = 1, vjust = 0.5, angle = -90, size = 3
       ) +
@@ -800,39 +885,42 @@ server <- function(input, output, session) {
             legend.text = element_text(color = color_texto, size = 10, margin = margin(r=8, t = 4, b = 4))) +
       theme(panel.background = element_rect(fill = color_detalle), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
-      labs(y = paste("Delitos anuales en", input$comuna),
-           x = paste("Delitos principales de la comuna de ", input$comuna, "en cada año")
+      labs(y = NULL, #paste("Delitos anuales en", texto_unidad_redactado()),
+           x = paste("Delitos principales", texto_unidad_redactado(), "en cada año")
       ) +
       guides (fill = guide_legend(nrow = 2, keywidth = unit(1, "mm")))
   }, res = 95)
   
   
   ## gráfico mensuales promedio presidente ----
-  output$grafico_presidentes_dias <- renderPlot({
+  output$grafico_presidentes <- renderPlot({
     req(length(input$comuna) == 1)
     
     #delitos diarios promedio durante el periodo de cada presidente
-    datos <- datos_comuna() |> 
+    datos <- datos_unidad() |> 
       #poner presidentes de cada fecha
       left_join(presidentes_fecha(), join_by(fecha)) |> 
       mutate(presidente_id = presidente_id |> str_remove_all (" 1") |> 
+               str_trim() |> 
                fct_reorder(fecha)) |>
       mutate(presidente_id = presidente_id |> fct_rev()) |> 
       #meses
       mutate(año = year(fecha),
              mes = month(fecha)) |> 
-      summarize(delitos = sum(delitos), .by = c(comuna, año, mes, presidente_id)) |> #delitos totales mensuales
-      summarize(delitos = mean(delitos), .by = c(comuna, presidente_id)) #promedio de delitos mensuales
+      summarize(delitos = sum(delitos), .by = c(año, mes, presidente_id)) |> #delitos totales mensuales
+      summarize(delitos = mean(delitos), .by = c(presidente_id)) #promedio de delitos mensuales
+    
+    # browser()
     
     datos |> 
       ggplot(aes(y = presidente_id, 
                  x = delitos)) +
+      geom_vline(xintercept = max(datos$delitos), linetype = "solid", color = color_negativo, linewidth = 1, alpha = .8) +
+      geom_vline(xintercept = min(datos$delitos), linetype = "solid", color = color_positivo, linewidth = 1, alpha = .8) +
       geom_col(fill = color_secundario, width = 0.5) +
       geom_text(aes(label = format(round(delitos, 0), big.mark = ".", decimal.mark = ","),
                     x = delitos * 0.98),
                 hjust = 1, color = color_texto, fontface = "bold") +
-      geom_vline(xintercept = max(datos$delitos), linetype = "dashed", color = color_negativo, linewidth = 1) +
-      geom_vline(xintercept = min(datos$delitos), linetype = "dashed", color = color_positivo, linewidth = 1) +
       scale_x_continuous(expand = expansion(c(0, 0.05))) +
       scale_y_discrete(expand = expansion(0.1)) +
       #temas
