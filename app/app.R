@@ -9,6 +9,7 @@ library(forcats)
 library(glue)
 library(fresh)
 library(shinycssloaders)
+library(shinyjs)
 
 delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
@@ -32,6 +33,7 @@ css <- function(text) {
 }
 
 ui <- fluidPage(
+  useShinyjs(),
   use_googlefont("Open Sans"), #cargar fuente o tipo de letra
   use_googlefont("Song Myung"),
   
@@ -245,14 +247,15 @@ ui <- fluidPage(
   fluidRow(
     column(4,
            pickerInput("region", 
-                       label = h4("Región"),
+                       label = h4("Región:"),
+                       width = "100%",
                        choices = as.character(unique(delincuencia$region)),
                        selected = "Metropolitana de Santiago", 
                        multiple = F
            ),
            
            pickerInput("comuna",
-                       label = h4("Comuna"),
+                       label = h4("Comuna:"),
                        width = "100%",
                        multiple = FALSE,
                        choices = NULL,
@@ -260,8 +263,9 @@ ui <- fluidPage(
            ),
            actionButton("azar_comuna", "Elegir comuna al azar", style = "margin-bottom: 14px;"),
            
+           
            pickerInput("delitos",
-                       label = h4("Delitos"),
+                       label = h4("Delitos:"),
                        width = "100%",
                        multiple = TRUE,
                        choices = as.character(unique(delincuencia$delito)),
@@ -272,6 +276,17 @@ ui <- fluidPage(
                                       width = FALSE)
            ),
            
+           div(style = "margin-top: 24px; margin-bottom: 12px;",
+           actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
+                        size = "xs",
+                        style = glue("margin: auto; height: 28px; 
+                        font-size: 84%; padding-top: 5px; 
+                        background-color: {color_detalle};
+                        color: {color_enlaces};")
+           )
+           ),
+           
+           div(id = "opciones",
            sliderTextInput(
              inputId = "suavizar",
              label = h4("Suavizar datos"), 
@@ -296,6 +311,7 @@ ui <- fluidPage(
              value = c(dmy("01-01-2017"), today()), 
              timeFormat = "%Y"
            )
+           ) |> hidden()
            
     ),
     
@@ -336,10 +352,15 @@ ui <- fluidPage(
   
   # firma ----
   fluidRow(
-    column(12, style = "padding: 28px;",
+    column(12, style = "padding: 28px; font-size: 90%;",
            hr(),
-           p("Diseñado y programado por",
+           p("Desarrollado por",
              tags$a("Bastián Olea Herrera.", target = "_blank", href = "https://bastian.olea.biz")),
+           
+           markdown("Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)"),
+           
+           markdown("Fuente de los datos: [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/)"),
+           
            p(
              "Código de fuente de esta app y del procesamiento de los datos",
              tags$a("disponible en GitHub.", target = "_blank", href = "https://github.com/bastianolea/delincuencia_chile")
@@ -348,9 +369,7 @@ ui <- fluidPage(
              tags$a("técnicas de web scraping en R, detalladas en este tutorial.",
                     href = "https://bastianolea.github.io/tutorial_r_datos_delincuencia/",
                     target = "_blank")
-           ),
-           
-           div(style = "height: 30px")
+           )
            
     )
   )
@@ -399,66 +418,78 @@ server <- function(input, output, session) {
   })
   
   
-  #datos ----
+  # botones ----
+  
+  observeEvent(input$mostrar_opciones, toggle("opciones", anim = T))
+  
+  
+  # datos ----
+  
+  ## datos comuna o región ----
   datos_comuna <- reactive({
     req(length(input$comuna) == 1)
-    
-    message("datos comuna")
     
     delincuencia |> 
       filter(comuna == input$comuna)
   })
   
+  datos_region <- reactive({
+    req(length(input$region) == 1)
+    
+    delincuencia |> 
+      filter(region == input$region)
+  })
+  
+  ## datos delito ----
   datos_filtrados <- reactive({
     req(length(input$delitos) > 0)
     req(length(input$delitos) <= 8)
-    
-    message("datos filtrados")
     
     datos_comuna() |> 
       filter(delito %in% input$delitos)
   })
   
-  #sumar datos ----
-  datos_1 <- reactive({
+  ## sumar datos ----
+  datos_sumados <- reactive({
     req(datos_filtrados())
     
-    message("datos")
-    
     if (input$sumar == FALSE) {
-      datos_1 <- datos_filtrados()
+      datos_filtrados_2 <- datos_filtrados()
       
     } else if (input$sumar == TRUE) {
-      datos_1 <- datos_filtrados() |> 
+      datos_filtrados_2 <- datos_filtrados() |> 
         group_by(fecha, comuna, region, cut_comuna, cut_region) |> 
         summarize(delitos = sum(delitos, na.rm = T), .groups = "drop") |> 
         mutate(delito = "Suma de delitos")
     }
-    
-    return(datos_1)
+    return(datos_filtrados_2)
   })
   
-  #suavizar con media móvil ----
-  datos <- reactive({
+  ## suavizar con media móvil ----
+  datos_suavizados <- reactive({
     if (input$suavizar != "No") {
       .suavizar_dias <- case_when(input$suavizar == "21 días" ~ 21,
                                   input$suavizar == "14 días" ~ 14,
                                   input$suavizar == "7 días" ~ 7)
-      datos_2 <- datos_1() |> 
+      datos_sumados_2 <- datos_sumados() |> 
         group_by(delito) |> 
         mutate(delitos_mm = slide_dbl(delitos, mean, .before = .suavizar_dias)) |> 
         ungroup()
     } else {
-      datos_2 <- datos_1() |> 
+      datos_sumados_2 <- datos_sumados() |> 
         mutate(delitos_mm = delitos) |> 
         ungroup()
     }
-    return(datos_2)
+    return(datos_sumados_2)
   })
   
-  delitos_maximo <- reactive(max(datos()$delitos_mm))
+  datos <- reactive(datos_suavizados())
   
-  # presidentes ----
+  delitos_maximo <- reactive(max(datos()$delitos_mm))
+
+  
+  
+  ## presidentes ----
   periodos_presidenciales <- reactive({
     periodos_presidenciales_0 |> 
       mutate(presidente_fecha_termino = case_when(is.na(presidente_fecha_termino) ~ as_date(max(datos()$fecha)), 
@@ -490,7 +521,7 @@ server <- function(input, output, session) {
       select(-id)
   })
   
-  # pandemia ----
+  ## pandemia ----
   fecha_inicio_pandemia = reactive(dmy("11-03-2020"))
   
   fecha_fin_cuarentena = reactive(dmy("29-06-2021"))
@@ -499,7 +530,7 @@ server <- function(input, output, session) {
                                      summarize(max(delitos_mm)) |> pull())
   
   
-  #promedios por periodo ----
+  ## promedios por periodo ----
   piñera <- reactive(periodos_presidenciales() |> filter(presidente == "Sebastián Piñera Echenique") |> slice_max(fecha))
   boric <- reactive(periodos_presidenciales() |> filter(presidente == "Gabriel Boric Font") |> slice_max(fecha))
   
@@ -511,7 +542,7 @@ server <- function(input, output, session) {
       filter(fecha <= fecha_inicio_pandemia()) |> 
       #solo datos desde antes de la pandemia o de después del fin de la última cuarentena
       # filter(fecha <= fecha_inicio_pandemia() | fecha >= fecha_fin_cuarentena()) |> 
-      summarize(delitos = mean(delitos)) |> 
+      summarize(delitos = mean(delitos), .groups = "drop") |> 
       pull()
   })
   
@@ -523,13 +554,19 @@ server <- function(input, output, session) {
       pull()
   })
   
-  
+  # textos ----
   output$comuna3 <- output$comuna2 <- output$comuna1 <- output$comuna <- renderText({
     req(input$comuna)
     input$comuna
   })
   
-  #grafico líneas ----
+  output$region <- renderText({
+    req(input$region)
+    input$region
+  })
+  
+  # gráficos ----
+  ## gráfico líneas ----
   output$grafico <- renderPlot({
     req(length(input$comuna) == 1)
     req(datos())
@@ -635,7 +672,7 @@ server <- function(input, output, session) {
       scale_x_date(limits = c(min(datos()$fecha), max(datos()$fecha)),
                    expand = c(0, 0), oob = scales::squish, 
                    date_breaks = "years", date_labels = "%Y") +
-      scale_y_continuous(expand = expansion(c(0, 0.015)), labels = ~format(.x, big.mark = ".")) +
+      scale_y_continuous(expand = expansion(c(0, 0.015)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
       scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
       coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
       #temas
@@ -665,7 +702,7 @@ server <- function(input, output, session) {
   }, res = 95)
   
   
-  #gráfico barras delitos anuales ----
+  ## gráfico barras delitos anuales ----
   output$grafico_anuales <- renderPlot({
     req(length(input$comuna) == 1)
     
@@ -673,17 +710,17 @@ server <- function(input, output, session) {
     datos <- datos_comuna() |> 
       mutate(año = year(fecha)) |> 
       group_by(comuna, año) |> 
-      summarize(delitos = sum(delitos))
+      summarize(delitos = sum(delitos), .groups = "drop")
     
     datos |> 
       ggplot(aes(as.factor(año), delitos)) +
       geom_hline(yintercept = mean(datos$delitos), linetype = "dashed", color = color_destacado, linewidth = 1) +
       geom_col(fill = color_secundario, width = 0.5) +
-      geom_text(aes(label = format(delitos, big.mark ="."),
+      geom_text(aes(label = format(delitos, big.mark =".", decimal.mark = ","),
                     y = delitos * 0.99),
                 hjust = 0, angle = -90, color = color_texto, fontface = "bold") +
       
-      scale_y_continuous(expand = expansion(c(0.01, 0.03)), labels = ~format(.x, big.mark = ".")) +
+      scale_y_continuous(expand = expansion(c(0.01, 0.03)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
       #temas
       theme(text = element_text(color = color_texto),
             rect = element_rect(fill = color_fondo),
@@ -702,7 +739,7 @@ server <- function(input, output, session) {
            x = paste("Delitos totales anuales en la comuna de", input$comuna))
   }, res = 90)
   
-  #gráfico barras delitos principales ---- 
+  ## gráfico barras delitos principales ---- 
   output$grafico_principales <- renderPlot({
     req(length(input$comuna) == 1)
     
@@ -710,7 +747,7 @@ server <- function(input, output, session) {
       mutate(año = year(fecha)) |> 
       filter(año >= year(input$fecha[1])) |> 
       group_by(comuna, año, delito) |>
-      summarize(delitos = sum(delitos)) |> 
+      summarize(delitos = sum(delitos), .groups = "drop") |> 
       arrange(desc(año), desc(delitos)) |> 
       group_by(año) |> 
       slice_max(delitos, n = 3) |> 
@@ -721,7 +758,6 @@ server <- function(input, output, session) {
       group_by(delito) |> 
       slice_max(delitos)
     
-    
     datos |> 
       ggplot(aes(delito, delitos, 
                  fill = delito, color = delito)) +
@@ -731,17 +767,17 @@ server <- function(input, output, session) {
                  linetype = "dashed", linewidth = 0.8, alpha = 0.8) +
       geom_col(position = position_dodge2(), width = 0.5) +
       ggrepel::geom_text_repel(data = maximos |> rename(año_max = año) |> mutate(año = max(datos$año)),
-                               aes(label = glue(" {año_max}: {format(delitos, big.mark='.')}"),
+                               aes(label = glue(" {año_max}: {format(delitos, big.mark='.', decimal.mark = ',')}"),
                                    x = 4), hjust = 0, vjust = 0.5, size = 3,
                                direction = "y", xlim = c(4.5, Inf)
       ) +
       geom_text(data = datos |> filter(año == max(datos$año)),
-                aes(label = format(delitos, big.mark='.'),
+                aes(label = format(delitos, big.mark='.', decimal.mark = ","),
                     y = delitos*1.04),
                 hjust = 1, vjust = 0.5, angle = -90, size = 3
       ) +
       facet_wrap(~año, nrow = 1, scales = "free_x", strip.position = "bottom") +
-      scale_y_continuous(expand = expansion(c(0.02, 0.05)), labels = ~format(.x, big.mark = ".")) +
+      scale_y_continuous(expand = expansion(c(0.02, 0.05)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
       scale_fill_brewer(palette = "Spectral", type = "qual", direction = -1) +
       scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
       coord_cartesian(clip = "off") +
@@ -771,10 +807,10 @@ server <- function(input, output, session) {
   }, res = 95)
   
   
-  #gráfico mensuales promedio presidente ----
+  ## gráfico mensuales promedio presidente ----
   output$grafico_presidentes_dias <- renderPlot({
     req(length(input$comuna) == 1)
-    # browser()
+    
     #delitos diarios promedio durante el periodo de cada presidente
     datos <- datos_comuna() |> 
       #poner presidentes de cada fecha
@@ -785,10 +821,8 @@ server <- function(input, output, session) {
       #meses
       mutate(año = year(fecha),
              mes = month(fecha)) |> 
-      group_by(comuna, año, mes, presidente_id) |> 
-      summarize(delitos = sum(delitos)) |> #delitos totales mensuales
-      group_by(comuna, presidente_id) |> 
-      summarize(delitos = mean(delitos)) #promedio de delitos mensuales
+      summarize(delitos = sum(delitos), .by = c(comuna, año, mes, presidente_id)) |> #delitos totales mensuales
+      summarize(delitos = mean(delitos), .by = c(comuna, presidente_id)) #promedio de delitos mensuales
     
     datos |> 
       ggplot(aes(y = presidente_id, 
