@@ -201,3 +201,66 @@ datos |>
   labs(y = paste("Cantidad de delitos principales en", .comuna),
        x = NULL)
   
+
+
+
+
+as.character(unique(delincuencia$delito))
+delitos_graves <- c("Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado",
+"Robo de vehículo motorizado",
+"Robo de objetos de o desde vehículo",
+"Robo por sorpresa",
+"Robo frustrado")
+
+datos2 <- delincuencia |> 
+  filter(comuna == .comuna) |> 
+  mutate(año = year(fecha)) |> 
+  group_by(delito, año) |> 
+  summarize(delitos = sum(delitos))
+
+
+datos2a <- datos2 |> 
+  filter(año %in% c(2020, 2023)) |> 
+  filter(delito %in% delitos_graves) |> 
+  group_by(delito) |> 
+  mutate(relacion = if_else(delitos == min(delitos), "menor", "mayor")) |> 
+  mutate(delitos_etiqueta = format(delitos, big.mark = ".", decimal.mark = ",", trim = T))
+
+datos2a_wide <- datos2a |> 
+  pivot_wider(id_cols = delito, names_from = año, values_from = delitos) |> 
+  rename(año_inicial = 2, año_final = 3) |> 
+  mutate(cambio = case_when(año_final > año_inicial ~ "aumenta", 
+                            año_final < año_inicial ~ "disminuye",
+                            año_final == año_inicial ~ "mantiene"))
+
+  # mutate(año_inicio = if_else(año == min(año), delitos, NA),
+  #        año_final = if_else(año == max(año), delitos, NA)) |> 
+  # fill(año_inicio) |> 
+  # fill(año_final, .direction = "up") |> 
+  # mutate(mayor = if_else(año_final > año_inicio, "final", "inicial")) |> 
+  # mutate(cambio = case_when(año_final > año_inicio ~ "aumenta", 
+  #                           año_final < año_inicio ~ "disminuye",
+  #                           año_final == año_inicio ~ "mantiene"))
+
+
+  
+#calcular tasa
+
+datos2a |> 
+  ggplot(aes(x = delitos, y = delito, color = as.factor(año))) +
+  geom_segment(data = datos2a_wide, 
+               aes(y = delito, x = año_inicial, xend = año_final), inherit.aes = F) +
+  geom_point(aes(size = relacion)) +
+  geom_text(data = datos2a |> filter(delitos == min(delitos)),
+            aes(label = paste(delitos_etiqueta, " ")), 
+            hjust = 1) +
+  geom_text(data = datos2a |> filter(delitos == max(delitos)),
+            aes(label = paste(" ", delitos_etiqueta)), 
+            hjust = 0) +
+  geom_text(aes(label = año, x = delitos), hjust = 0.5, vjust = 0, 
+            nudge_y = 0.15, size = 3) +
+  scale_x_continuous(expand = expansion(c(0.3, 0.3))) +
+  # scale_size_continuous(range = c(1, 10)) +
+  scale_size_manual(values = c(5, 3)) +
+  theme(legend.position = "top") +
+  guides(size = guide_none())

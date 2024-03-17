@@ -13,12 +13,12 @@ library(shinyjs)
 
 options(scipen = 9999)
 
+# datos ----
 delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
 
 periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv", show_col_types = F) |> 
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
-
 
 color_fondo = "#1f272b"
 color_texto = "#cdf2ef"
@@ -34,33 +34,35 @@ css <- function(text) {
   tags$style(glue(text, .open = "{{", .close = "}}"))
 }
 
-ui <- fluidPage(
-  useShinyjs(),
-  use_googlefont("Open Sans"), #cargar fuente o tipo de letra
-  use_googlefont("Song Myung"),
-  
-  use_theme(create_theme(
-    theme = "default",
-    bs_vars_input(bg = color_fondo),
-    bs_vars_global(body_bg = color_fondo, 
-                   text_color = color_texto, 
-                   link_color = color_texto,
-                   border_radius_base = "6px"),
-    bs_vars_font(size_base = "14px", #aumentar globalmente tamaño de letra  
-                 family_sans_serif = "Open Sans" #cargar fuente o tipo de letra
-    ),
-    bs_vars_button(
-      default_color = color_fondo,
-      default_bg = color_secundario,
-      default_border = color_fondo,
-      border_radius_base = "6px"
-    )
-  )),
-  
-  
-  #css ----
-  
-  css("body {
+ui <- fluidPage(title = "Estadísticas de delincuencia en Chile", 
+                lang = "es",
+                
+                useShinyjs(),
+                use_googlefont("Open Sans"), #cargar fuente o tipo de letra
+                use_googlefont("Song Myung"),
+                
+                use_theme(create_theme(
+                  theme = "default",
+                  bs_vars_input(bg = color_fondo),
+                  bs_vars_global(body_bg = color_fondo, 
+                                 text_color = color_texto, 
+                                 link_color = color_texto,
+                                 border_radius_base = "6px"),
+                  bs_vars_font(size_base = "14px", #aumentar globalmente tamaño de letra  
+                               family_sans_serif = "Open Sans" #cargar fuente o tipo de letra
+                  ),
+                  bs_vars_button(
+                    default_color = color_fondo,
+                    default_bg = color_secundario,
+                    default_border = color_fondo,
+                    border_radius_base = "6px"
+                  )
+                )),
+                
+                
+                #css ----
+                
+                css("body {
       background-color: {{color_fondo}};
   }"),
   
@@ -225,7 +227,7 @@ ui <- fluidPage(
   fluidRow(
     column(12,
            div(style = "margin-bottom: 12px;",
-               h1("Visualizador de delincuencia en Chile"),
+               h1("Estadísticas de delincuencia en Chile"),
                em("Bastián Olea Herrera")
            ),
            
@@ -246,9 +248,9 @@ ui <- fluidPage(
     column(4,
            
            div(style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}"),
-           em("Seleccione una región, y opcionalmente una comuna, y luego seleccione si desea visualizar los datos a nivel regional o comunal. Por defecto se elige una comuna al azar."),
+               em("Seleccione una región, y opcionalmente una comuna, y luego seleccione si desea visualizar los datos a nivel regional o comunal. Por defecto se elige una comuna al azar."),
            ),
-              
+           
            pickerInput("region", 
                        label = h4("Región"),
                        width = "100%",
@@ -357,12 +359,12 @@ ui <- fluidPage(
   #gráfico delitos principales por año ----
   fluidRow(
     column(12,
-             h2(textOutput("titulo_delitos_principales")),
+           h2(textOutput("titulo_delitos_principales")),
            p("En este gráfico se representan, por cada año del que se poseen datos oficiales, los tres delitos más frecuentes en la comuna o región elegida. El color de cada barra corresponde a un delito distinto, indicado en la leyenda de abajo. Al costado derecho del gráfico se presentan las cifras y años donde cada uno de los principales delitos alcanzó su máximo."),
            
            div(style = "margin-top: 24px;",
-           plotOutput("grafico_principales", height = 600) |> 
-             withSpinner(color = color_secundario, type = 8)
+               plotOutput("grafico_principales", height = 600) |> 
+                 withSpinner(color = color_secundario, type = 8)
            )
     )
   ),
@@ -818,7 +820,7 @@ server <- function(input, output, session) {
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Cantidad de delitos anuales"),
            x = paste("Delitos totales anuales en", texto_unidad_redactado())
-           )
+      )
   }, res = 90)
   
   
