@@ -356,6 +356,36 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
     )
   ),
   
+  #gráfico comparación años  ----
+  
+  fluidRow(
+    column(12,
+           h2(textOutput("titulo_grafico_comparativo")),
+           markdown("Selecciona dos años para comparar las **tasas de delitos** en la comuna seleccionada. 
+             Esta medida permite analizar si los delitos aumentaron o disminuyeron entre ambas fechas. 
+             Al utilizar la tasa de delitos; es decir, la cantidad de delitos reportados por cada 1.000 habitantes,
+             es posible comparar delitos entre distintas fechas al considerar en el cálculo los cambios en la población de la comuna (es decir, si en una comuna los delitos se mantienen entre dos años, pero la población disminuye, entonces los delitos _bajan)_.
+             Los datos de población se obtienen desde las [proyecciones de población del INE.](https://bastianoleah.shinyapps.io/censo_proyecciones/)"),
+           div(style = "opacity: 0.6; font-size: 80%;",
+               markdown("La idea de este gráfico fue originalmente concebida por [Ernesto Laval](https://x.com/elaval/status/1768858137979740248?s=20), quien la implementó en [su propio visualizador de datos.](https://observablehq.com/@elaval/comparacion-tasa-de-delitos)")
+           ),
+           
+           div(style = "margin-top: 12px;display: inline-block;",
+               pickerInput("comparativo_año_1", label = "Primer año",
+                           choices = 2010:2023, selected = 2019, 
+                           multiple = F, inline = T),
+               pickerInput("comparativo_año_2", label = "Segundo año",
+                           choices = 2010:2023, selected = 2023,
+                           multiple = F, inline = T)
+           ),
+           
+           div(style = "margin-top: 24px;",
+               plotOutput("grafico_comparativo", height = 600) |> 
+                 withSpinner(color = color_secundario, type = 8)
+           )
+    )
+  ),
+  
   #gráfico delitos principales por año ----
   fluidRow(
     column(12,
@@ -641,13 +671,18 @@ server <- function(input, output, session) {
   })
   
   output$titulo_grafico_presidentes <- renderText({
-    paste("Promedio de delitos mensuales en", texto_unidad_redactado(), "por periodo presidencial")
+    paste("Promedio de delitos mensuales en", texto_unidad_redactado(), "por periodo de gobierno")
   })
   
   output$titulo_delitos_principales <- renderText({
     paste("Delitos principales por año en", texto_unidad_redactado())
   })
   
+  
+  output$titulo_grafico_comparativo <- renderText({
+    
+    paste("Comparación de delitos en años", input$comparativo_año_1, "y", input$comparativo_año_2, "en", texto_unidad_redactado())
+  })
   
   # gráficos ----
   ## gráfico líneas ----
@@ -773,8 +808,8 @@ server <- function(input, output, session) {
             axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5))) +
       theme(legend.position = "bottom",
             legend.title = element_blank(), 
-            legend.key = element_rect(fill = color_fondo),
-            legend.text = element_text(color = color_texto, size = 10, margin = margin(r = 6))) +
+            legend.key = element_rect(fill = color_fondo, linewidth = 0),
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(l= 3, r = 6))) +
       theme(panel.background = element_blank(), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Cantidad de delitos en", texto_unidad_redactado()),
@@ -884,7 +919,7 @@ server <- function(input, output, session) {
       theme(legend.position = "bottom",
             legend.title = element_blank(), 
             legend.key = element_rect(fill = color_fondo),
-            legend.text = element_text(color = color_texto, size = 10, margin = margin(r=8, t = 4, b = 4))) +
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(l = 3, r=8, t = 4, b = 4))) +
       theme(panel.background = element_rect(fill = color_detalle), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = NULL, #paste("Delitos anuales en", texto_unidad_redactado()),
@@ -941,6 +976,125 @@ server <- function(input, output, session) {
       labs(y = paste("Periodo presidencial"),
            x = "Promedio de delitos mensuales por periodo presidencial")
   }, res = 95)
+  
+  
+  ## gráfico comparativo tasas ----
+  censo <- reactive(arrow::read_parquet("censo_proyecciones_año.parquet"))
+  
+  datos_comparativo <- reactive({
+    delitos_graves <- c("Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado",
+                        "Robo de vehículo motorizado",
+                        "Robo de objetos de o desde vehículo",
+                        "Robo por sorpresa",
+                        "Robo frustrado")
+    
+    datos <- datos_unidad() |> 
+      mutate(año = year(fecha)) |> 
+      filter(año %in% c(input$comparativo_año_1, input$comparativo_año_2)) |> 
+      filter(delito %in% delitos_graves) |> 
+      left_join(censo(), by = join_by(cut_comuna, año))
+    
+    datos |> 
+      group_by(delito, año) |> 
+      summarize(delitos = sum(delitos), 
+                poblacion = first(población)) |> 
+      ungroup() |> 
+      mutate(tasa = (delitos / poblacion) * 1000)
+  })
+  
+  
+  
+  output$grafico_comparativo <- renderPlot({
+    req(length(input$comuna) == 1)
+    req(input$comparativo_año_1,
+        input$comparativo_año_2)
+    
+    datos <- datos_comparativo() |> 
+      group_by(delito) |> 
+      mutate(diferencia = 1-min(delitos)/max(delitos)) |> 
+      mutate(delitos = tasa) |> ###
+      mutate(relacion = if_else(delitos == min(delitos), "menor", "mayor")) |> 
+      mutate(delitos_etiqueta = format(round(delitos, 1), big.mark = ".", decimal.mark = ",", trim = T)) 
+    # browser()
+    
+    datos_wide <- datos_comparativo() |> 
+      mutate(delitos = tasa) |> ###
+      tidyr::pivot_wider(id_cols = delito, names_from = año, values_from = delitos) |>
+      rename(año_inicial = 2, año_final = 3) |> 
+      mutate(cambio = case_when(año_final > año_inicial ~ "aumenta", 
+                                año_final < año_inicial ~ "disminuye",
+                                año_final == año_inicial ~ "mantiene"))
+    
+    # browser()
+    # dev.new()
+    
+    datos |> 
+      ggplot(aes(x = delitos, y = delito, color = as.factor(año))) +
+      geom_segment(data = datos_wide, 
+                   aes(y = delito, x = año_inicial, xend = año_final), inherit.aes = F,
+                   color = color_texto, alpha = 0.4, linewidth = 1) +
+      geom_point(aes(size = relacion)) +
+      geom_text(data = datos |> filter(delitos == min(delitos)),
+                aes(label = paste(delitos_etiqueta, "  ")), 
+                hjust = 1, show.legend = F) +
+      geom_text(data = datos |> filter(delitos == max(delitos)),
+                aes(label = paste("   ", delitos_etiqueta)), 
+                hjust = 0, show.legend = F) +
+      #años
+      geom_text(data = datos |> filter(diferencia > 0.28), 
+                aes(label = año, x = delitos), hjust = 0.5, vjust = 0, 
+                nudge_y = 0.2, size = 2.5, show.legend = F, alpha = .7) +
+      #años juntos 
+      geom_text(data = datos |> filter(diferencia <= 0.28) |> 
+                  arrange(delitos) |> 
+                  mutate(año = paste(año, collapse = "/"),
+                         delitos = mean(delitos)), check_overlap = TRUE, show.legend = F,
+                aes(label = año, x = delitos), hjust = 0.5, vjust = 0,
+                nudge_y = 0.2, size = 2.5, color = color_enlaces, alpha = .7) +
+      #flechitas
+      geom_point(data = datos_wide |> filter(cambio == "aumenta"),
+                 aes(x = -0.6, y = delito), 
+                 inherit.aes = F, shape = 17, color = color_negativo, size = 3) +
+      geom_point(data = datos_wide |> filter(cambio == "disminuye"),
+                 aes(x = -0.6, y = delito), 
+                 inherit.aes = F, shape = 25, color = color_positivo, fill = color_positivo, size = 3) +
+      #escalas
+      coord_cartesian(clip = "off",
+                      # xlim = c(min(datos$delitos), max(datos$delitos))) +
+                      xlim = c(0, max(datos$delitos))
+      ) +
+      scale_x_continuous(expand = expansion(add = c(0.8, 0.8))) +
+      # scale_size_continuous(range = c(1, 10)) +
+      scale_y_discrete(expand = expansion(c(0.05, 0.05))) +
+      scale_size_manual(values = c(6, 4)) +
+      scale_color_manual(breaks = c(input$comparativo_año_1, input$comparativo_año_2),
+                         values = c(#color_secundario, 
+                           color_enlaces,
+                           color_destacado
+                         )) +
+      theme(legend.position = "top",
+            panel.grid.major.y = element_blank()) +
+      guides(size = guide_none(), 
+             color = guide_legend(override.aes = list(size = 5))) +
+      labs(color = "Años a comparar", y = NULL, 
+           x = paste("Tasa de delitos por cada 1.000 habitantes en", input$comparativo_año_1, "y", input$comparativo_año_2)
+      ) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            axis.ticks = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            axis.title = element_text(color = color_secundario),
+            axis.title.y = element_text(margin = margin(r = 8))) +
+      theme(panel.background = element_rect(fill = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0))
+    
+  }, res = 95)
+  
+  
 }
 
 

@@ -204,7 +204,7 @@ datos |>
 
 
 
-
+#tasa comparativa ----
 as.character(unique(delincuencia$delito))
 delitos_graves <- c("Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado",
 "Robo de vehículo motorizado",
@@ -212,39 +212,38 @@ delitos_graves <- c("Hurtos", "Robo con violencia o intimidación", "Robo en lug
 "Robo por sorpresa",
 "Robo frustrado")
 
+censo <- arrow::read_parquet("app/censo_proyecciones_año.parquet")
+
+
 datos2 <- delincuencia |> 
   filter(comuna == .comuna) |> 
   mutate(año = year(fecha)) |> 
+  left_join(censo, by = join_by(cut_comuna, año)) |> 
   group_by(delito, año) |> 
-  summarize(delitos = sum(delitos))
+  summarize(delitos = sum(delitos), 
+            poblacion = first(población)) |> 
+  ungroup() |> 
+  mutate(tasa = (delitos / poblacion) * 1000)
 
 
 datos2a <- datos2 |> 
   filter(año %in% c(2020, 2023)) |> 
   filter(delito %in% delitos_graves) |> 
   group_by(delito) |> 
+  mutate(delitos = tasa) |> ###
   mutate(relacion = if_else(delitos == min(delitos), "menor", "mayor")) |> 
-  mutate(delitos_etiqueta = format(delitos, big.mark = ".", decimal.mark = ",", trim = T))
+  mutate(delitos_etiqueta = format(round(delitos, 1), big.mark = ".", decimal.mark = ",", trim = T)) |> 
+  mutate(diferencia = 1-min(delitos)/max(delitos))
 
 datos2a_wide <- datos2a |> 
-  pivot_wider(id_cols = delito, names_from = año, values_from = delitos) |> 
+  mutate(delitos = tasa) |> ###
+  pivot_wider(id_cols = delito, names_from = año, values_from = delitos) |>
   rename(año_inicial = 2, año_final = 3) |> 
   mutate(cambio = case_when(año_final > año_inicial ~ "aumenta", 
                             año_final < año_inicial ~ "disminuye",
-                            año_final == año_inicial ~ "mantiene"))
+                            año_final == año_inicial ~ "mantiene")) |> 
+  mutate(año_max = max(año_inicial, año_final))
 
-  # mutate(año_inicio = if_else(año == min(año), delitos, NA),
-  #        año_final = if_else(año == max(año), delitos, NA)) |> 
-  # fill(año_inicio) |> 
-  # fill(año_final, .direction = "up") |> 
-  # mutate(mayor = if_else(año_final > año_inicio, "final", "inicial")) |> 
-  # mutate(cambio = case_when(año_final > año_inicio ~ "aumenta", 
-  #                           año_final < año_inicio ~ "disminuye",
-  #                           año_final == año_inicio ~ "mantiene"))
-
-
-  
-#calcular tasa
 
 datos2a |> 
   ggplot(aes(x = delitos, y = delito, color = as.factor(año))) +
@@ -253,14 +252,34 @@ datos2a |>
   geom_point(aes(size = relacion)) +
   geom_text(data = datos2a |> filter(delitos == min(delitos)),
             aes(label = paste(delitos_etiqueta, " ")), 
-            hjust = 1) +
+            hjust = 1, show.legend = F) +
   geom_text(data = datos2a |> filter(delitos == max(delitos)),
-            aes(label = paste(" ", delitos_etiqueta)), 
-            hjust = 0) +
-  geom_text(aes(label = año, x = delitos), hjust = 0.5, vjust = 0, 
-            nudge_y = 0.15, size = 3) +
-  scale_x_continuous(expand = expansion(c(0.3, 0.3))) +
+            aes(label = paste("  ", delitos_etiqueta)), 
+            hjust = 0, show.legend = F) +
+  #años
+  geom_text(data = datos2a |> filter(diferencia > 0.25), 
+            aes(label = año, x = delitos), hjust = 0.5, vjust = 0, 
+            nudge_y = 0.13, size = 3, show.legend = F) +
+  geom_text(data = datos2a |> filter(diferencia <= 0.25) |> 
+              mutate(año = paste(año, collapse = "/"),
+                     delitos = mean(delitos)), check_overlap = TRUE, show.legend = F,
+            aes(label = año, x = delitos), hjust = 0.5, vjust = 0,
+            nudge_y = 0.13, size = 3) +
+  #flechitas
+  geom_point(data = datos2a_wide |> filter(cambio == "aumenta"),
+             aes(x = año_max+(mean(datos2a_wide$año_max)*0.4), y = delito), 
+             inherit.aes = F, shape = 17, color = color_negativo, size = 3) +
+  geom_point(data = datos2a_wide |> filter(cambio == "disminuye"),
+             aes(x = año_max+(mean(datos2a_wide$año_max)*0.4), y = delito), 
+             inherit.aes = F, shape = 25, color = color_positivo, fill = color_positivo, size = 3) +
+  #escalas
+  scale_x_continuous(expand = expansion(c(0.15, 0.18))) +
   # scale_size_continuous(range = c(1, 10)) +
+  scale_y_discrete(expand = expansion(c(0.05, 0.05))) +
   scale_size_manual(values = c(5, 3)) +
-  theme(legend.position = "top") +
-  guides(size = guide_none())
+  scale_color_manual(breaks = c("2020", "2023"),
+                     values = c("2020" = "red", "2023" = "blue")) +
+  theme(legend.position = "top",
+        panel.grid.major.y = element_blank()) +
+  guides(size = guide_none()) +
+  labs(color = "Años a comparar", x = "Cantidad de delitos en ambos años")
