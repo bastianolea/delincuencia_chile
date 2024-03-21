@@ -5,8 +5,9 @@ account: bastianoleah
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 11030528
-bundleId: 8401051
+bundleId: 8401337
 url: https://bastianoleah.shinyapps.io/delincuencia_chile/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: cead_delincuencia_antiguo.parquet

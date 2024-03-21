@@ -34,11 +34,12 @@ color_detalle = "#1e3534" |> lighten(.95) |> desaturate(.6)
 
 # opciones ----
 # .comuna = "La Florida"
+.comuna = "Santiago"
 # .comuna = "Puente Alto"
 # .comuna = "Ñuñoa"
-.comuna = "Estación Central"
+# .comuna = "Estación Central"
 año1 = 2019
-año2 = 2022
+año2 = 2023
 
 #tasa comparativa ----
 as.character(unique(delincuencia$delito))
@@ -159,5 +160,5 @@ datos |>
 # guardar ----
 ggsave(filename = paste0("graficos/grafico_comparativo_tasa_", 
                          tolower(.comuna) |> str_replace_all(" ", "_"), 
-                         ".png"), 
+                         "_2023.png"), 
        width = 7, height = 6, scale = 1.3)

@@ -277,6 +277,12 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                              choices = c("Comuna" = "comuna", "Región" = "region"), 
                              width = "100%", justified = T, individual = F),
            
+           div(
+             p("Los datos disponibles para esta comuna llegan hasta:", textOutput("max_fecha_datos", inline = T),
+               style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}")
+               )
+             ),
+           
            div(style = "margin-top: 24px; margin-bottom: 12px;",
                actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
                             size = "xs",
@@ -379,7 +385,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                            choices = 2010:2023, selected = 2019, 
                            multiple = F, inline = T),
                pickerInput("comparativo_año_2", label = "Segundo año",
-                           choices = 2010:2023, selected = 2022,
+                           choices = 2010:2023, selected = 2023,
                            multiple = F, inline = T)
            ),
            
@@ -494,6 +500,14 @@ server <- function(input, output, session) {
     } else if (input$unidad == "region") {
       datos <- datos_region() |> rename(unidad = region)
     }
+  })
+  
+  output$max_fecha_datos <- renderText({
+    fecha <- max(datos_unidad()$fecha, na.rm = T)
+    # browser()
+    fecha2 <- fecha + months(1) - days(1)
+    fecha_formateada <- format(fecha2, "%d/%m/%Y")
+    return(fecha_formateada)
   })
   
   ## datos delito ----

@@ -2,6 +2,7 @@ library(dplyr)
 library(rvest)
 library(purrr)
 library(RCurl)
+library(ggplot2)
 
 #https://cead.spd.gov.cl/estadisticas-delictuales/
 
@@ -39,7 +40,7 @@ datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
                     })
     final = Sys.time()
     
-    Sys.sleep((final-inicio)*2)
+    Sys.sleep((final-inicio)*1.5)
     return(data)
   })
   return(data)
@@ -48,7 +49,8 @@ datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
 
 # guardar información cruda
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo.rds", compress = "gz")
-readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
+# readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
+readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023_2024.rds", compress = "gz")
 
 
 #—----
@@ -123,19 +125,47 @@ cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
 
 
 cead_nuevo |> 
-  filter(fecha > "2023-01-01") |> 
-  summarize(max(fecha))
+  # filter(fecha > "2023-01-01") |> 
+  summarize(min(fecha),
+            max(fecha))
 
 cead_anterior |> 
-  filter(fecha > "2023-01-01") |> 
-  summarize(max(fecha))
+  summarize(min(fecha),
+            max(fecha))
 
+cead_anterior |> 
+  filter(fecha < "2023-01-01") |> 
+  summarize(min(fecha),
+            max(fecha))
 
+#unir
 cead_unido <- cead_anterior |> 
   filter(fecha < "2023-01-01") |> 
   bind_rows(cead_nuevo) |> 
   arrange(fecha, comuna, delito)
 
+#revisar unión
+cead_unido |> 
+  summarize(min(fecha),
+            max(fecha))
+
+cead_unido |> 
+  group_by(comuna) |> 
+  summarize(n = n()) |> 
+  filter(n != 3024)
+
+#revisar visualmente
+cead_unido |> 
+  summarize(delito_n = sum(delito_n), .by = c(fecha)) |> 
+  ggplot(aes(fecha, delito_n)) +
+  geom_line() +
+  theme(legend.position = "none")
+
+cead_unido |> 
+  summarize(delito_n = sum(delito_n), .by = c(fecha, comuna)) |> 
+  ggplot(aes(fecha, delito_n, color = comuna)) +
+  geom_line() +
+  theme(legend.position = "none")
 
 #guardar
 # readr::write_csv2(cead, "datos/cead_incivilidades.csv")
