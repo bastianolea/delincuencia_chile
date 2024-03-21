@@ -34,10 +34,11 @@ color_detalle = "#1e3534" |> lighten(.95) |> desaturate(.6)
 
 # opciones ----
 # .comuna = "La Florida"
-.comuna = "Santiago"
+# .comuna = "Santiago"
 # .comuna = "Puente Alto"
 # .comuna = "Ñuñoa"
 # .comuna = "Estación Central"
+.comuna = "Providencia"
 año1 = 2019
 año2 = 2023
 
@@ -79,12 +80,13 @@ datos_wide <- datos |>
   rename(año_inicial = 2, año_final = 3) |> 
   mutate(cambio = case_when(año_final > año_inicial ~ "aumenta", 
                             año_final < año_inicial ~ "disminuye",
-                            año_final == año_inicial ~ "mantiene")) |> 
+                            año_final == año_inicial ~ "sin cambio")) |> 
   mutate(año_max = max(año_inicial, año_final)) |> 
-  mutate(diferencia = 1-año_inicial/año_final)
+  mutate(diferencia = 1-año_inicial/año_final) |> 
+  mutate(cambio = if_else(abs(diferencia) < 0.05, "sin cambio", cambio))
 
 # graficar ----
-posicion_flechas = max(datos_wide$año_max)/10
+posicion_flechas = max(datos_wide$año_max)/11
 
 datos |> 
   ggplot(aes(x = delitos, y = delito, color = as.factor(año))) +
@@ -110,16 +112,17 @@ datos |>
             nudge_y = 0.2, size = 3, color = color_enlaces, alpha = .9) +
   #flechitas
   geom_point(data = datos_wide |> filter(cambio == "disminuye"),
-             aes(x = año_max+posicion_flechas, y = delito), 
-             inherit.aes = F, shape = 25, color = color_positivo, fill = color_positivo, size = 4) +
-  geom_point(data = datos_wide |> filter(cambio == "aumenta" & diferencia > 0.05),
-             aes(x = año_max+posicion_flechas, y = delito), 
-             inherit.aes = F, shape = 17, color = color_negativo, size = 4) +
-  geom_point(data = datos_wide |> filter(diferencia <= 0.05 & diferencia > 0),
-             aes(x = año_max+posicion_flechas, y = delito), 
-             inherit.aes = F, shape = 15, color = color_secundario, size = 4.5, alpha = .5) +
+             aes(x = año_max+posicion_flechas, y = delito, shape = cambio), 
+             inherit.aes = F, color = color_positivo, fill = color_positivo, size = 4) +
+  geom_point(data = datos_wide |> filter(cambio == "aumenta" & diferencia > umbral_delitos_mantienen),
+             aes(x = año_max+posicion_flechas, y = delito, shape = cambio), 
+             inherit.aes = F, color = color_negativo, size = 4) +
+  geom_point(data = datos_wide |> filter(abs(diferencia) <= umbral_delitos_mantienen & abs(diferencia) >= 0),
+             aes(x = año_max+posicion_flechas, y = delito, shape = cambio), 
+             inherit.aes = F, color = color_secundario, size = 4.5, alpha = .5) +
   #escalas
   coord_cartesian(clip = "off") +
+  scale_shape_manual(values = c("disminuye" = 25, "aumenta" = 17, "sin cambio" = 15)) +
   scale_x_continuous(expand = expansion(0.1, 0.1)) +
   scale_y_discrete(expand = expansion(c(0.06, 0.07)), labels = ~str_wrap(.x, 25)) +
   scale_size_manual(values = c(6, 4)) +
@@ -127,11 +130,14 @@ datos |>
   theme(legend.position = "top",
         panel.grid.major.y = element_blank()) +
   guides(size = guide_none(), 
-         color = guide_legend(override.aes = list(size = 5))) +
+         color = guide_legend(override.aes = list(size = 5), order = 1),
+         shape = guide_legend(override.aes = list(color = color_secundario, fill = color_secundario))
+         ) +
   labs(color = "Años a comparar", y = NULL, 
        x = paste("Tasa de delitos por cada 1.000 habitantes en", año1, "y", año2),
        title = paste("Comparación de tasa de delitos:", .comuna),
        subtitle = paste("Comuna de", .comuna, "en los años", año1, "y", año2),
+       shape = "Cambio",
        caption = "Fuente: estadísticas delictuales oficiales del Centro de Estudio y Análisis del Delito (CEAD)"
   ) +
   #temas
@@ -150,7 +156,7 @@ datos |>
   theme(panel.background = element_rect(fill = color_fondo), 
         plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
   theme(legend.title = element_text(face = "bold", color = color_secundario),
-        legend.box.margin = margin(b=-10),
+        legend.box.margin = margin(b=-10, t = 4),
         plot.title = element_text(face = "bold", color = color_secundario),
         plot.subtitle = element_text(face = "bold", color = color_secundario, margin = margin(b = -4)),
         plot.caption = element_text(color = color_secundario),
@@ -158,7 +164,7 @@ datos |>
   )
 
 # guardar ----
-ggsave(filename = paste0("graficos/grafico_comparativo_tasa_", 
-                         tolower(.comuna) |> str_replace_all(" ", "_"), 
-                         "_2023.png"), 
+nombre_comuna <- tolower(.comuna) |> str_replace_all(" ", "_")
+
+ggsave(filename = paste0("graficos/grafico_comparativo_tasa_", nombre_comuna, "_", año1, "_", año2, ".png"), 
        width = 7, height = 6, scale = 1.3)
