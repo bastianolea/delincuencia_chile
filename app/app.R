@@ -20,6 +20,10 @@ delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |>
 periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv", show_col_types = F) |> 
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
 
+censo <- arrow::read_parquet("censo_proyecciones_año.parquet")
+
+
+# colores ----
 color_fondo = "#1f272b"
 color_texto = "#cdf2ef"
 color_secundario = "#317773"
@@ -979,7 +983,7 @@ server <- function(input, output, session) {
   
   
   ## gráfico comparativo tasas ----
-  censo <- reactive(arrow::read_parquet("censo_proyecciones_año.parquet"))
+  # censo <- reactive(arrow::read_parquet("censo_proyecciones_año.parquet"))
   
   datos_comparativo <- reactive({
     delitos_graves <- c("Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado",
@@ -992,7 +996,7 @@ server <- function(input, output, session) {
       mutate(año = year(fecha)) |> 
       filter(año %in% c(input$comparativo_año_1, input$comparativo_año_2)) |> 
       filter(delito %in% delitos_graves) |> 
-      left_join(censo(), by = join_by(cut_comuna, año))
+      left_join(censo, by = join_by(cut_comuna, año))
     
     datos |> 
       group_by(delito, año) |> 
@@ -1001,7 +1005,6 @@ server <- function(input, output, session) {
       ungroup() |> 
       mutate(tasa = (delitos / poblacion) * 1000)
   })
-  
   
   
   output$grafico_comparativo <- renderPlot({
