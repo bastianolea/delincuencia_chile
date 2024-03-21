@@ -379,7 +379,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                            choices = 2010:2023, selected = 2019, 
                            multiple = F, inline = T),
                pickerInput("comparativo_año_2", label = "Segundo año",
-                           choices = 2010:2023, selected = 2023,
+                           choices = 2010:2023, selected = 2022,
                            multiple = F, inline = T)
            ),
            
