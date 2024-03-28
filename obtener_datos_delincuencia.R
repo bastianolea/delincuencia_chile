@@ -14,24 +14,25 @@ source("funciones_delincuencia.R")
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
 # años_elegidos = 2010:2023
-años_elegidos = 2023:2024
+años_elegidos = 2010:2024
 
 # scraping por api ----
+# ejecuta la obtención de datos, por comuna y por año, haciendo requests al sitio de cead
 
-#por cada comuna
+# por cada comuna
 datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
   message("inciando comuna ", comuna)
   
-  #por cada año especificado
+  # por cada año especificado
   data <- map(años_elegidos |> set_names(), \(año) {
     message("año ", año)
     
-    #generar request
+    # generar request
     xml.request = cead_generar_request(año_elegido = año, 
                                        comuna, 
-                                       delitos = "incivilidades y robos") #definidos en la función, se sacan del request
+                                       delitos = "todos") #definidos en la función, se sacan del request
     
-    #obtener datos
+    # obtener datos
     inicio = Sys.time()
     data = tryCatch(cead_realizar_request(xml.request), 
                     error = function(e) {
@@ -50,7 +51,8 @@ datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
 # guardar información cruda
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo.rds", compress = "gz")
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
-readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023_2024.rds", compress = "gz")
+# readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023_2024.rds", compress = "gz")
+readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2010_2024.rds", compress = "gz")
 
 
 #—----

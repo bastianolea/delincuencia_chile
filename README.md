@@ -13,7 +13,29 @@ El objetivo de esta plataforma es transparentar datos objetivos de la delincuenc
 
 Los datos se obtuvieron directamente desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial.](https://bastianolea.github.io/tutorial_r_datos_delincuencia/)
 
-![Visualizador de datos de delincuencia en Chile](pantallazo_delincuencia_chile.jpg "Visualizador de datos de delincuencia en Chile")
+![Visualizador de datos de delincuencia en Chile](otros/pantallazo_delincuencia_chile.jpg "Visualizador de datos de delincuencia en Chile")
+
+
+## Comparación de delitos reportados entre 2019 y 2023
+
+### Delitos en Estación Central, comparación 2019 y 2023
+![Gráfico](graficos/grafico_comparativo_tasa_estación_central_2019_2023.png)
+
+### Delitos en La Florida, comparación 2019 y 2023
+![Gráfico](graficos/grafico_comparativo_tasa_la_florida_2019_2023.png)
+
+### Delitos en Providencia, comparación 2019 y 2023
+![Gráfico](graficos/grafico_comparativo_tasa_providencia_2019_2023.png)
+
+### Delitos en Puente Alto, comparación 2019 y 2023
+![Gráfico](graficos/grafico_comparativo_tasa_puente_alto_2019_2023.png)
+
+### Delitos en Santiago, comparación 2019 y 2023
+![Gráfico](graficos/grafico_comparativo_tasa_santiago_2019_2023.png)
+
+### Delitos en Ñuñoa, comparación 2019 y 2023
+![Gráfico](graficos/grafico_comparativo_tasa_ñuñoa_2019_2023.png)
+
 
 ----
 
