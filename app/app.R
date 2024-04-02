@@ -10,12 +10,15 @@ library(glue)
 library(fresh)
 library(shinycssloaders)
 library(shinyjs)
+library(gt)
 
 options(scipen = 9999)
 
 # datos ----
 delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
+
+lista_delitos <- as.character(unique(delincuencia$delito))
 
 periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv", show_col_types = F) |> 
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
@@ -331,8 +334,8 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                        label = h4("Delitos"),
                        width = "100%",
                        multiple = TRUE,
-                       choices = as.character(unique(delincuencia$delito)),
-                       selected = c("Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado"),
+                       choices = lista_delitos,
+                       selected = c("Homicidios", "Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado"),
                        options = list(maxOptions = 8, 
                                       maxOptionsText = "Máximo 8",
                                       noneSelectedText = "Sin selección",
@@ -398,13 +401,65 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
   
   #gráfico delitos principales por año ----
   fluidRow(
-    column(12,
+    column(12, style = "margin-top: 20px;",
            h2(textOutput("titulo_delitos_principales")),
            p("En este gráfico se representan, por cada año del que se poseen datos oficiales, los tres delitos más frecuentes en la comuna o región elegida. El color de cada barra corresponde a un delito distinto, indicado en la leyenda de abajo. Al costado derecho del gráfico se presentan las cifras y años donde cada uno de los principales delitos alcanzó su máximo."),
            
            div(style = "margin-top: 24px;",
                plotOutput("grafico_principales", height = 600) |> 
                  withSpinner(color = color_secundario, type = 8)
+           )
+    )
+  ),
+  
+  # tabla ----
+  fluidRow(
+    column(12, style = "margin-top: 30px;",
+           # h2("Datos de delincuencia"),
+           h2(textOutput("titulo_tabla")),
+           p("En esta tabla se disponen todos los datos de delitos correspondientes a la comuna o región seleccionada. A continuación, selecicone un año y especifique los delitos a considerar para visualizar los datos en la tabla."),
+           
+           div(style = "max-width: 460px;",
+           sliderInput(
+             inputId = "año_tabla",
+             label = h4("Seleccione un año"),
+             min = 2010,
+             max = 2023,
+             value = 2023, sep = "", width = "100%"
+           )
+           ),
+           
+           pickerInput("delitos_tabla",
+                       label = h4("Delitos"),
+                       width = "100%",
+                       multiple = TRUE,
+                       choices = lista_delitos,
+                       selected = c("Hurtos", "Robo con violencia o intimidación", 
+                                    "Robo en lugar habitado",
+                                    "Robo en lugar no habitado",
+                                    "Robo de vehículo motorizado",
+                                    "Robo de objetos de o desde vehículo",
+                                    "Robo por sorpresa",
+                                    "Robo frustrado",
+                                    "Homicidios",
+                                    "Violencia intrafamiliar a mujer",
+                                    "Abusos sexuales y otros delitos sexuales",
+                                    "Violaciones",
+                                    "Consumo alcohol vía pública",
+                                    "Lesiones menos graves, graves o gravísimas",
+                                    "Lesiones leves",
+                                    "Comercio ambulante o clandestino",
+                                    "Daños",
+                                    "Amenazas",
+                                    "Otros robos con fuerza"),
+                       options = list(maxOptions = 8, 
+                                      maxOptionsText = "Máximo 8",
+                                      noneSelectedText = "Sin selección",
+                                      width = FALSE)
+           ),
+           
+           div(style = "margin-top: -10px;",
+           gt_output("tabla") |> withSpinner(color = color_secundario, type = 8)
            )
     )
   ),
@@ -662,6 +717,18 @@ server <- function(input, output, session) {
     }
   })
   
+  output$titulo_tabla <- renderText({
+    if (input$unidad == "comuna") {
+      paste("Estadísticas de delitos denunciados en la comuna de", input$comuna)
+    } else if (input$unidad == "region") {
+      if (input$region == "Metropolitana de Santiago") {
+        paste("Estadísticas de delitos denunciados en la región", input$region)
+      } else {
+        paste("Estadísticas de delitos denunciados en", input$region)
+      }
+    }
+  })
+  
   
   texto_unidad_redactado <- reactive({
     req(length(input$comuna) > 0)
@@ -812,6 +879,7 @@ server <- function(input, output, session) {
       scale_y_continuous(expand = expansion(c(0, 0.015)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
       scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
       coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
+      guides(color = guide_legend(position = "bottom", nrow = 2)) +
       #temas
       theme(text = element_text(color = color_texto),
             rect = element_rect(fill = color_fondo),
@@ -824,8 +892,7 @@ server <- function(input, output, session) {
             panel.grid.major.y = element_line(color = color_detalle),
             axis.title = element_text(color = color_secundario),
             axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5))) +
-      theme(legend.position = "bottom",
-            legend.title = element_blank(), 
+      theme(legend.title = element_blank(), 
             legend.key = element_rect(fill = color_fondo, linewidth = 0),
             legend.text = element_text(color = color_texto, size = 10, margin = margin(l= 3, r = 6))) +
       theme(panel.background = element_blank(), 
@@ -1004,7 +1071,9 @@ server <- function(input, output, session) {
                         "Robo de vehículo motorizado",
                         "Robo de objetos de o desde vehículo",
                         "Robo por sorpresa",
-                        "Robo frustrado")
+                        "Robo frustrado",
+                        "Homicidios",
+                        "Violencia intrafamiliar a mujer")
     
     datos <- datos_unidad() |> 
       mutate(año = year(fecha)) |> 
@@ -1111,6 +1180,64 @@ server <- function(input, output, session) {
     
   }, res = 95)
   
+  
+  # tablas ----
+  datos_tabla <- reactive({
+    req(length(input$comuna) == 1)
+    req(datos())
+    message("tabla...")
+    
+    datos_filt <- datos_unidad() |> 
+      select(fecha, unidad, delito, delitos) |> 
+      arrange(fecha, desc(delitos)) |> 
+      filter(year(fecha) == input$año_tabla) |>
+      filter(delito %in% input$delitos_tabla)
+    
+    datos_tabla <- datos_filt |> 
+      tidyr::pivot_wider(names_from = delito, values_from = delitos) |> 
+      mutate(mes = month(fecha),
+             mes = recode(mes, 
+                          "1" = "enero", "2" = "febrero", "3" = "marzo",
+                          "4" = "abril", "5" = "mayo", "6" = "junio",
+                          "7" = "julio", "8" = "agosto", "9" = "septiembre",
+                          "10" = "octubre", "11" = "noviembre", "12" = "diciembre")) |> 
+      select(-fecha, -unidad) |> 
+      relocate(mes, .before = 1) 
+    # browser()
+    return(datos_tabla)
+  })
+  
+  output$tabla <- render_gt({
+    datos_tabla() |> 
+      gt() |> 
+      tab_style(style = cell_text(size = px(13)), 
+                locations = cells_body()) |> 
+      tab_style(style = cell_text(weight = "bold", size = px(13)),
+                locations = cells_column_labels(everything())) |> 
+      cols_align(align = "right", columns = mes) |>
+      data_color(columns = where(is.numeric), direction = "column",
+                 fn = scales::col_numeric(palette = c(color_fondo, color_secundario), #color_destacado), 
+                                          domain = NULL)
+                 
+                 ) |> 
+                 # palette = color_detalle2, na_color = color_texto) |>
+      # fmt_number(columns = monto, sep_mark = ".", decimals = 0) |> 
+      tab_style(style = cell_borders(color = color_fondo, weight = px(2), style = "solid"),
+        locations = cells_body()
+      ) |> 
+      cols_label(mes = "Mes") |> 
+      tab_options(table.font.color = color_texto, table.font.color.light = color_texto, 
+                  table_body.hlines.color = color_detalle,
+                  table_body.vlines.color = color_detalle,
+                  column_labels.border.top.color = color_fondo, 
+                  column_labels.border.bottom.color = color_detalle, 
+                  table_body.border.bottom.color = color_detalle,
+                  table.background.color = color_fondo,
+                  row_group.font.weight = "bold", 
+                  row_group.border.bottom.color = color_fondo, 
+                  row_group.border.top.width = px(20), row_group.border.top.color = color_fondo, 
+                  table.font.names = "Open Sans")
+  })
   
 }
 

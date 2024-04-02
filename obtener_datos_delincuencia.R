@@ -53,7 +53,7 @@ datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023_2024.rds", compress = "gz")
 readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2010_2024.rds", compress = "gz")
-
+# datos_cead <- readr::read_rds("datos/cead_delincuencia_crudo_todos_2010_2024.rds")
 
 #—----
 
@@ -111,7 +111,10 @@ cead_limpiada <- map_df(comunas_por_calcular |> as.character(), \(.comuna) {
 cead <- cead_limpiada |> 
   #sacar categorías que son agrupaciones de delitos individuales
   filter(delitos != "Delitos de mayor connotación social",
-         delitos != "Incivilidades") |> 
+         delitos != "Incivilidades",
+         delitos != "Violencia intrafamiliar",
+         # !delitos %in% c("Violencia intrafamiliar a adulto mayor", "Violencia intrafamiliar a hombre", "Violencia intrafamiliar a mujer", "Violencia intrafamiliar a niño", "Violencia intrafamiliar no clasificado"),
+         ) |> 
   mutate(fecha = lubridate::ymd(paste(año, mes, 1))) |> 
   select(fecha, cut_comuna, delito = delitos, delito_n = cifra) |>
   mutate(delito_n = as.numeric(delito_n),
@@ -121,32 +124,42 @@ cead <- cead_limpiada |>
   mutate(across(where(is.character), as.factor))
 
 
-#unir con datos anteriores ----
-cead_nuevo <- cead
-cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
+# cead |> count(delito)
 
+#unir con datos anteriores (opcional) ----
+# cead_nuevo <- cead
+# cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
+# 
+# 
+# cead_nuevo |> 
+#   # filter(fecha > "2023-01-01") |> 
+#   summarize(min(fecha),
+#             max(fecha))
+# 
+# cead_anterior |> 
+#   summarize(min(fecha),
+#             max(fecha))
+# 
+# cead_anterior |> 
+#   filter(fecha < "2023-01-01") |> 
+#   summarize(min(fecha),
+#             max(fecha))
+# 
+# #unir
+# cead_unido <- cead_anterior |> 
+#   filter(fecha < "2023-01-01") |> 
+#   bind_rows(cead_nuevo) |> 
+#   arrange(fecha, comuna, delito)
 
-cead_nuevo |> 
-  # filter(fecha > "2023-01-01") |> 
-  summarize(min(fecha),
-            max(fecha))
+cead_unido <- cead
 
-cead_anterior |> 
-  summarize(min(fecha),
-            max(fecha))
+# revisar ----
 
-cead_anterior |> 
-  filter(fecha < "2023-01-01") |> 
-  summarize(min(fecha),
-            max(fecha))
+cead_unido |> filter(cut_comuna == 1101) |> 
+  filter(fecha == max(fecha)) |> 
+  arrange(delito) |> 
+  print(n=Inf)
 
-#unir
-cead_unido <- cead_anterior |> 
-  filter(fecha < "2023-01-01") |> 
-  bind_rows(cead_nuevo) |> 
-  arrange(fecha, comuna, delito)
-
-#revisar unión
 cead_unido |> 
   summarize(min(fecha),
             max(fecha))
@@ -169,7 +182,7 @@ cead_unido |>
   geom_line() +
   theme(legend.position = "none")
 
-#guardar
+# guardar -----
 # readr::write_csv2(cead, "datos/cead_incivilidades.csv")
 # arrow::write_parquet(cead, "datos/cead_delincuencia.parquet")
 # cead <- arrow::read_parquet("datos/cead_delincuencia.parquet")

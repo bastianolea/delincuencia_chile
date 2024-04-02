@@ -10,6 +10,8 @@ library(tidyr)
 delincuencia <- arrow::read_parquet("app/cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
 
+delincuencia |> count(delito)
+
 presidentes <- readr::read_csv("app/periodos_presidenciales_chile.csv", show_col_types = F) |>
   select(presidente = nombre, fecha_inicio, fecha_termino)
 
