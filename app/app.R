@@ -37,6 +37,7 @@ color_destacado = "#cf5a13"
 color_positivo = "#91b423"
 color_negativo = "#c03426"
 
+
 css <- function(text) {
   tags$style(glue(text, .open = "{{", .close = "}}"))
 }
@@ -179,7 +180,6 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
   
          .dropdown-header {
          color: white !important;
-         font-family: Aleo;
          font-weight: bold;
          font-size: 110%;
          }
@@ -458,6 +458,9 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                                       width = FALSE)
            ),
            
+           br(),
+           h3(textOutput("titulo_tabla2")),
+           
            div(style = "margin-top: -10px;",
            gt_output("tabla") |> withSpinner(color = color_secundario, type = 8)
            )
@@ -717,7 +720,7 @@ server <- function(input, output, session) {
     }
   })
   
-  output$titulo_tabla <- renderText({
+  output$titulo_tabla2 <- output$titulo_tabla <- renderText({
     if (input$unidad == "comuna") {
       paste("Estadísticas de delitos denunciados en la comuna de", input$comuna)
     } else if (input$unidad == "region") {
@@ -889,6 +892,7 @@ server <- function(input, output, session) {
             axis.ticks = element_blank(),
             axis.ticks.x = element_line(colour = color_detalle),
             axis.ticks.length.x = unit(-0.25, "cm"),
+            plot.title = element_text(face = "bold"),
             panel.grid.major.y = element_line(color = color_detalle),
             axis.title = element_text(color = color_secundario),
             axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5))) +
@@ -898,6 +902,7 @@ server <- function(input, output, session) {
       theme(panel.background = element_blank(), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Cantidad de delitos en", texto_unidad_redactado()),
+           title = paste("Cantidad de delitos denunciados en", texto_unidad_redactado()),
            x = NULL)
     
     plot(p)
@@ -932,6 +937,7 @@ server <- function(input, output, session) {
             panel.grid.major.x = element_blank(),
             axis.ticks = element_blank(),
             panel.grid.major.y = element_line(color = color_detalle),
+            plot.title = element_text(face = "bold", margin = margin(t = 6, b = 6)),
             axis.title = element_text(color = color_secundario),
             axis.title.y = element_text(margin = margin(r = 8)),
             axis.title.x = element_text(margin = margin(t = 8)),
@@ -939,6 +945,7 @@ server <- function(input, output, session) {
       theme(panel.background = element_rect(fill = color_fondo), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Cantidad de delitos anuales"),
+           title = paste("Delitos anuales denunciados en", texto_unidad_redactado()),
            x = paste("Delitos totales anuales en", texto_unidad_redactado())
       )
   }, res = 90)
@@ -984,7 +991,7 @@ server <- function(input, output, session) {
                 hjust = 1, vjust = 0.5, angle = -90, size = 3
       ) +
       facet_wrap(~año, nrow = 1, scales = "free_x", strip.position = "bottom") +
-      scale_y_continuous(expand = expansion(c(0.02, 0.05)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
+      scale_y_continuous(expand = expansion(c(0.02, 0.08)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
       scale_fill_brewer(palette = "Spectral", type = "qual", direction = -1) +
       scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
       coord_cartesian(clip = "off") +
@@ -995,6 +1002,7 @@ server <- function(input, output, session) {
             panel.grid.minor = element_blank(),
             panel.grid.major.x = element_blank(),
             axis.ticks = element_blank(),
+            plot.title = element_text(face = "bold", margin = margin(b=8)),
             panel.grid.major.y = element_line(color = color_detalle),
             axis.title = element_text(color = color_secundario),
             axis.text.x = element_blank())+
@@ -1008,13 +1016,14 @@ server <- function(input, output, session) {
       theme(panel.background = element_rect(fill = color_detalle), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = NULL, #paste("Delitos anuales en", texto_unidad_redactado()),
-           x = paste("Delitos principales", texto_unidad_redactado(), "en cada año")
+           x = paste("Delitos principales", texto_unidad_redactado(), "en cada año"),
+           title = paste("Delitos principales en", texto_unidad_redactado()),
       ) +
       guides (fill = guide_legend(nrow = 2, keywidth = unit(1, "mm")))
   }, res = 95)
   
   
-  ## gráfico mensuales promedio presidente ----
+  ## gráfico mensuales gobierno ----
   output$grafico_presidentes <- renderPlot({
     req(length(input$comuna) == 1)
     
@@ -1057,9 +1066,12 @@ server <- function(input, output, session) {
             axis.title.y = element_text(margin = margin(r = 8)),
             axis.text.x = element_blank()) +
       theme(panel.background = element_rect(fill = color_fondo), 
+            plot.title = element_text(face = "bold", margin = margin(t = 0, b = 10)),
+            plot.title.position = "plot",
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Periodo presidencial"),
-           x = "Promedio de delitos mensuales por periodo presidencial")
+           x = "Promedio de delitos mensuales por periodo presidencial",
+           title = paste("Delitos mensuales promedio denunciados \nsegún periodo de gobierno, en", texto_unidad_redactado()))
   }, res = 95)
   
   
@@ -1097,14 +1109,18 @@ server <- function(input, output, session) {
     
     datos <- datos_comparativo() |> 
       group_by(delito) |> 
+      mutate(delito = str_wrap(delito, 15)) |> 
       mutate(diferencia = 1-min(delitos)/max(delitos)) |> 
       mutate(delitos = tasa) |> ###
       mutate(relacion = if_else(delitos == min(delitos), "menor", "mayor")) |> 
-      mutate(delitos_etiqueta = format(round(delitos, 1), big.mark = ".", decimal.mark = ",", trim = T)) 
+      mutate(delitos_etiqueta = format(round(delitos, 1), big.mark = ".", decimal.mark = ",", trim = T))
     # browser()
     
     datos_wide <- datos_comparativo() |> 
-      mutate(delitos = tasa) |> ###
+      mutate(delito = str_wrap(delito, 15)) |> 
+      mutate(delitos = round(tasa, digits = 2)) |>
+      # mutate(delitos = round(tasa, digits = 1)) |>
+      # mutate(delitos = floor(tasa*10)/10) |> 
       tidyr::pivot_wider(id_cols = delito, names_from = año, values_from = delitos) |>
       rename(año_inicial = 2, año_final = 3) |> 
       mutate(cambio = case_when(año_final > año_inicial ~ "aumenta", 
@@ -1127,11 +1143,11 @@ server <- function(input, output, session) {
                 aes(label = paste("   ", delitos_etiqueta)), 
                 hjust = 0, show.legend = F) +
       #años
-      geom_text(data = datos |> filter(diferencia > 0.28), 
+      geom_text(data = datos |> filter(diferencia > 0.4), 
                 aes(label = año, x = delitos), hjust = 0.5, vjust = 0, 
                 nudge_y = 0.2, size = 2.5, show.legend = F, alpha = .7) +
       #años juntos 
-      geom_text(data = datos |> filter(diferencia <= 0.28) |> 
+      geom_text(data = datos |> filter(diferencia <= 0.4) |> 
                   arrange(delitos) |> 
                   mutate(año = paste(año, collapse = "/"),
                          delitos = mean(delitos)), check_overlap = TRUE, show.legend = F,
@@ -1139,17 +1155,17 @@ server <- function(input, output, session) {
                 nudge_y = 0.2, size = 2.5, color = color_enlaces, alpha = .7) +
       #flechitas
       geom_point(data = datos_wide |> filter(cambio == "aumenta"),
-                 aes(x = -0.6, y = delito), 
+                 aes(x = -0.9, y = delito), 
                  inherit.aes = F, shape = 17, color = color_negativo, size = 3) +
       geom_point(data = datos_wide |> filter(cambio == "disminuye"),
-                 aes(x = -0.6, y = delito), 
+                 aes(x = -0.9, y = delito), 
                  inherit.aes = F, shape = 25, color = color_positivo, fill = color_positivo, size = 3) +
       #escalas
       coord_cartesian(clip = "off",
                       # xlim = c(min(datos$delitos), max(datos$delitos))) +
                       xlim = c(0, max(datos$delitos))
       ) +
-      scale_x_continuous(expand = expansion(add = c(0.8, 0.8))) +
+      scale_x_continuous(expand = expansion(add = c(0.4, 0.8))) +
       # scale_size_continuous(range = c(1, 10)) +
       scale_y_discrete(expand = expansion(c(0.05, 0.05))) +
       scale_size_manual(values = c(6, 4)) +
@@ -1158,11 +1174,17 @@ server <- function(input, output, session) {
                            color_enlaces,
                            color_destacado
                          )) +
+      coord_cartesian(clip = "off") +
       theme(legend.position = "top",
+            legend.background = element_rect(fill = "transparent"),
+            axis.text.x = element_text(margin = margin(t = -4, b = 4)),
+            axis.text.y = element_text(size = 10),
+            legend.box.margin = margin(t = -4, b = -14),
             panel.grid.major.y = element_blank()) +
       guides(size = guide_none(), 
              color = guide_legend(override.aes = list(size = 5))) +
       labs(color = "Años a comparar", y = NULL, 
+           title = paste("Tasa de delitos en", texto_unidad_redactado()),
            x = paste("Tasa de delitos por cada 1.000 habitantes en", input$comparativo_año_1, "y", input$comparativo_año_2)
       ) +
       #temas
@@ -1172,6 +1194,8 @@ server <- function(input, output, session) {
             panel.grid.minor = element_blank(),
             panel.grid.major.x = element_blank(),
             axis.ticks = element_blank(),
+            plot.title.position = "plot",
+            plot.title = element_text(face = "bold"),
             panel.grid.major.y = element_line(color = color_detalle),
             axis.title = element_text(color = color_secundario),
             axis.title.y = element_text(margin = margin(r = 8))) +
