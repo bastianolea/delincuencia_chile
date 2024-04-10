@@ -938,6 +938,7 @@ server <- function(input, output, session) {
             axis.ticks = element_blank(),
             panel.grid.major.y = element_line(color = color_detalle),
             plot.title = element_text(face = "bold", margin = margin(t = 6, b = 6)),
+            plot.title.position = "plot",
             axis.title = element_text(color = color_secundario),
             axis.title.y = element_text(margin = margin(r = 8)),
             axis.title.x = element_text(margin = margin(t = 8)),
@@ -945,7 +946,7 @@ server <- function(input, output, session) {
       theme(panel.background = element_rect(fill = color_fondo), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Cantidad de delitos anuales"),
-           title = paste("Delitos anuales denunciados en", texto_unidad_redactado()),
+           title = paste("Delitos anuales denunciados \nen", texto_unidad_redactado()),
            x = paste("Delitos totales anuales en", texto_unidad_redactado())
       )
   }, res = 90)
@@ -1110,7 +1111,9 @@ server <- function(input, output, session) {
     datos <- datos_comparativo() |> 
       group_by(delito) |> 
       mutate(delito = str_wrap(delito, 15)) |> 
-      mutate(diferencia = 1-min(delitos)/max(delitos)) |> 
+      # mutate(diferencia = 1-min(delitos)/max(delitos)) |> 
+      mutate(diferencia = abs(tasa-lag(tasa))) |> 
+      tidyr::fill(diferencia, .direction = "up") |> 
       mutate(delitos = tasa) |> ###
       mutate(relacion = if_else(delitos == min(delitos), "menor", "mayor")) |> 
       mutate(delitos_etiqueta = format(round(delitos, 1), big.mark = ".", decimal.mark = ",", trim = T))
@@ -1138,21 +1141,21 @@ server <- function(input, output, session) {
       geom_point(aes(size = relacion)) +
       geom_text(data = datos |> filter(delitos == min(delitos)),
                 aes(label = paste(delitos_etiqueta, "  ")), 
-                hjust = 1, show.legend = F) +
+                hjust = 1, size = 3.5, show.legend = F) +
       geom_text(data = datos |> filter(delitos == max(delitos)),
                 aes(label = paste("   ", delitos_etiqueta)), 
-                hjust = 0, show.legend = F) +
+                hjust = 0, size = 3.5, show.legend = F) +
       #años
       geom_text(data = datos |> filter(diferencia > 0.4), 
                 aes(label = año, x = delitos), hjust = 0.5, vjust = 0, 
-                nudge_y = 0.2, size = 2.5, show.legend = F, alpha = .7) +
+                nudge_y = 0.25, size = 2.5, show.legend = F, alpha = .7) +
       #años juntos 
       geom_text(data = datos |> filter(diferencia <= 0.4) |> 
                   arrange(delitos) |> 
                   mutate(año = paste(año, collapse = "/"),
                          delitos = mean(delitos)), check_overlap = TRUE, show.legend = F,
                 aes(label = año, x = delitos), hjust = 0.5, vjust = 0,
-                nudge_y = 0.2, size = 2.5, color = color_enlaces, alpha = .7) +
+                nudge_y = 0.25, size = 2.5, color = color_enlaces, alpha = .7) +
       #flechitas
       geom_point(data = datos_wide |> filter(cambio == "aumenta"),
                  aes(x = -0.9, y = delito), 
@@ -1184,7 +1187,7 @@ server <- function(input, output, session) {
       guides(size = guide_none(), 
              color = guide_legend(override.aes = list(size = 5))) +
       labs(color = "Años a comparar", y = NULL, 
-           title = paste("Tasa de delitos en", texto_unidad_redactado()),
+           title = paste("Tasa de delitos (delitos por cada mil habitantes) en", texto_unidad_redactado()),
            x = paste("Tasa de delitos por cada 1.000 habitantes en", input$comparativo_año_1, "y", input$comparativo_año_2)
       ) +
       #temas
