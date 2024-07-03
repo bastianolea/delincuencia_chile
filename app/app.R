@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyWidgets)
+library(nanoparquet)
 library(dplyr)
 library(ggplot2)
 library(slider)
@@ -15,15 +16,18 @@ library(gt)
 options(scipen = 9999)
 
 # datos ----
-delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
+# setwd("app")
+delincuencia <- nanoparquet::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
+
+datos_año_min = min(year(delincuencia$fecha))
 
 lista_delitos <- as.character(unique(delincuencia$delito))
 
 periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv", show_col_types = F) |> 
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
 
-censo <- arrow::read_parquet("censo_proyecciones_año.parquet")
+censo <- nanoparquet::read_parquet("censo_proyecciones_año.parquet")
 
 
 # colores ----
@@ -315,10 +319,11 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                sliderInput(
                  inputId = "fecha",
                  label = h4("Rango de fechas"),
-                 min = dmy("11-03-2010"),
-                 max = today(), width = "100%",
-                 # value = c(dmy("11-03-2010"), today()), 
-                 value = c(dmy("01-01-2017"), today()), 
+                 # min = dmy("11-03-2010"),
+                 min = ymd(paste0(datos_año_min, "-01-01")), #dmy("01-01-2018"),
+                 max = today(), 
+                 width = "100%",
+                 value = c(dmy("01-01-2019"), today()), 
                  timeFormat = "%Y"
                )
            ) |> hidden()
@@ -385,10 +390,10 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
            
            div(style = "margin-top: 12px;display: inline-block;",
                pickerInput("comparativo_año_1", label = "Primer año",
-                           choices = 2010:2023, selected = 2019, 
+                           choices = datos_año_min:2023, selected = 2019, 
                            multiple = F, inline = T),
                pickerInput("comparativo_año_2", label = "Segundo año",
-                           choices = 2010:2023, selected = 2023,
+                           choices = datos_año_min:2023, selected = 2023,
                            multiple = F, inline = T)
            ),
            
@@ -423,7 +428,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
            sliderInput(
              inputId = "año_tabla",
              label = h4("Seleccione un año"),
-             min = 2010,
+             min = datos_año_min,
              max = 2023,
              value = 2023, sep = "", width = "100%"
            )

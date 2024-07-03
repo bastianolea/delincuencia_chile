@@ -65,8 +65,9 @@ cead_realizar_request <- function(xml.request) {
 
 
 
-
 cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
+
+  require(purrr)
   
   datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
     message("inciando comuna ", comuna)
@@ -130,8 +131,12 @@ cead_obtener_tabla <- function(cead_comuna_año) {
 
 # itera sobre el objeto datos_cead, retornado por cead_descargar_datos(), que es el resultado del scraping, para convertir los datos crudos en tablas, y retornar todos los datos de comunas y años en una sola tabla 
 cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
+
+  require(purrr)
+  require(furrr)
+  plan(multisession, workers = 4)
   
-  cead_limpiada <- map_df(comunas_por_calcular |> as.character(), \(.comuna) {
+  cead_limpiada <- furrr::future_map(comunas_por_calcular |> as.character(), \(.comuna) {
     message("obteniendo ", .comuna)
     # .comuna <- comunas_por_calcular[56] |> as.character()
     # .comuna = "1101"
@@ -169,5 +174,10 @@ cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
     })
     return(datos_comuna_año)
   })
-  return(cead_limpiada)
+  
+  cead_limpiada_2 <- cead_limpiada |> 
+    list_flatten() |> 
+    list_rbind()
+  
+  return(cead_limpiada_2)
 }
