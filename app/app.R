@@ -30,6 +30,8 @@ delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |>
 #   dput()
 
 datos_año_min = min(year(delincuencia$fecha))
+datos_año_max = max(year(delincuencia$fecha))
+datos_ultimo_año_completo = 2023
 
 delitos_graves <- c("Hurtos", "Robos con violencia o intimidación", "Robo en lugar habitado",
                     "Robo de vehículo motorizado",
@@ -395,7 +397,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                   )
                 ),
                 
-                #gráfico comparación años  ----
+                #gráfico comparación tasas años  ----
                 
                 fluidRow(
                   column(12,
@@ -411,14 +413,14 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                          
                          div(style = "margin-top: 12px;display: inline-block;",
                              pickerInput("comparativo_año_1", label = "Primer año",
-                                         choices = datos_año_min:2023, selected = 2019, 
+                                         choices = datos_año_min:datos_ultimo_año_completo, selected = 2019, 
                                          multiple = F, inline = T),
                              pickerInput("comparativo_año_2", label = "Segundo año",
-                                         choices = datos_año_min:2023, selected = 2023,
+                                         choices = datos_año_min:datos_ultimo_año_completo, selected = 2023,
                                          multiple = F, inline = T)
                          ),
                          
-                         div(style = "margin-top: 24px;",
+                         div(style = "margin: auto; margin-top: 24px; max-width: 800px;",
                              plotOutput("grafico_comparativo", height = 600) |> 
                                withSpinner(color = color_secundario, type = 8)
                          )
@@ -431,7 +433,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                          h2(textOutput("titulo_delitos_principales")),
                          p("En este gráfico se representan, por cada año del que se poseen datos oficiales, los tres delitos más frecuentes en la comuna o región elegida. El color de cada barra corresponde a un delito distinto, indicado en la leyenda de abajo. Al costado derecho del gráfico se presentan las cifras y años donde cada uno de los principales delitos alcanzó su máximo."),
                          
-                         div(style = "margin-top: 24px;",
+                         div(style = "margin:auto; margin-top: 24px; max-width: 1000px;",
                              plotOutput("grafico_principales", height = 600) |> 
                                withSpinner(color = color_secundario, type = 8)
                          )
@@ -450,8 +452,9 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                                inputId = "año_tabla",
                                label = h4("Seleccione un año"),
                                min = datos_año_min,
-                               max = 2023,
-                               value = 2023, sep = "", width = "100%"
+                               max = datos_año_max,
+                               value = datos_ultimo_año_completo, 
+                               sep = "", width = "100%"
                              )
                          ),
                          
@@ -560,7 +563,8 @@ server <- function(input, output, session) {
     
     delincuencia |> 
       filter(region == input$region) |> 
-      summarize(delitos = sum(delitos), .by = c(fecha, delito, region, cut_region))
+      summarize(delitos = sum(delitos), 
+                .by = c(fecha, delito, region, cut_region))
     # browser()
   })
   
@@ -973,7 +977,8 @@ server <- function(input, output, session) {
     
     datos <- datos_unidad() |> 
       mutate(año = year(fecha)) |> 
-      filter(año >= year(input$fecha[1])) |> 
+      filter(año >= year(input$fecha[1]),
+             año <= datos_ultimo_año_completo) |> 
       group_by(año, delito) |>
       summarize(delitos = sum(delitos), .groups = "drop") |> 
       arrange(desc(año), desc(delitos)) |> 
@@ -994,14 +999,16 @@ server <- function(input, output, session) {
                  aes(yintercept = delitos, color = delito),
                  linetype = "solid", linewidth = 0.8, alpha = 0.4) +
       geom_col(position = position_dodge2(), width = 0.5) +
+      # texto afuera del gráfico
       ggrepel::geom_text_repel(data = maximos |> rename(año_max = año) |> mutate(año = max(datos$año)),
                                aes(label = glue(" {año_max}: {format(round(delitos, 0), big.mark='.', decimal.mark = ',')}"),
                                    x = 4), hjust = 0, vjust = 0.5, size = 3,
                                direction = "y", xlim = c(4.5, Inf)
       ) +
-      geom_text(data = datos |> filter(año == max(datos$año)),
-                aes(label = format(round(delitos, 0), big.mark='.', decimal.mark = ","),
-                    y = delitos*1.04),
+      # texto sobre barras
+      geom_text(data = datos, #|> filter(año == max(datos$año)),
+                aes(label = paste0(format(round(delitos, 0), big.mark='.', decimal.mark = ","), "  "),
+                    y = delitos),
                 hjust = 1, vjust = 0.5, angle = -90, size = 3
       ) +
       facet_wrap(~año, nrow = 1, scales = "free_x", strip.position = "bottom") +
@@ -1117,9 +1124,9 @@ server <- function(input, output, session) {
     }
     
     datos |> 
-      group_by(delito, año) |> 
       summarize(delitos = sum(delitos), 
-                poblacion = first(población)) |> 
+                poblacion = first(población), 
+                .by = c(delito, año)) |> 
       ungroup() |> 
       mutate(tasa = (delitos / poblacion) * 1000)
   })
