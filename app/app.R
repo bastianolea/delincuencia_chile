@@ -1,33 +1,50 @@
 library(shiny)
 library(shinyWidgets)
-library(nanoparquet)
+library(shinycssloaders)
+library(shinyjs)
+library(fresh)
+
+library(arrow)
 library(dplyr)
 library(ggplot2)
+library(gt)
 library(slider)
 library(lubridate)
 library(stringr)
 library(forcats)
 library(glue)
-library(fresh)
-library(shinycssloaders)
-library(shinyjs)
-library(gt)
 
 options(scipen = 9999)
 
 # datos ----
 # setwd("app")
-delincuencia <- nanoparquet::read_parquet("cead_delincuencia.parquet") |> 
+delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
+
+# delincuencia |> 
+#   summarize(delitos = sum(delitos), .by = delito) |> 
+#   arrange(desc(delitos)) |> 
+#   slice(1:10) |> 
+#   pull(delito) |> 
+#   as.character() |> 
+#   dput()
 
 datos_año_min = min(year(delincuencia$fecha))
 
-lista_delitos <- as.character(unique(delincuencia$delito))
+delitos_graves <- c("Hurtos", "Robos con violencia o intimidación", "Robo en lugar habitado",
+                    "Robo de vehículo motorizado",
+                    "Robo de objetos de o desde vehículo",
+                    "Robo por sorpresa",
+                    "Robo frustrado",
+                    "Homicidios",
+                    "Violencia intrafamiliar a mujer")
+
+lista_delitos <- as.character(unique(delincuencia$delito)) |> sort()
 
 periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv", show_col_types = F) |> 
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
 
-censo <- nanoparquet::read_parquet("censo_proyecciones_año.parquet")
+censo <- arrow::read_parquet("censo_proyecciones_año.parquet")
 
 
 # colores ----
@@ -77,8 +94,8 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 css("body {
       background-color: {{color_fondo}};
   }"),
-  
-  css("p {
+                
+                css("p {
       color: {{color_texto}};
   }
   a {
@@ -88,24 +105,24 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
    hr {
   border-top: 3px solid {{color_detalle}} ;
   }"),
-  
-  css("h1, h2, h3 {
+                
+                css("h1, h2, h3 {
       font-family: Song Myung;
   }"),
-  
-  css("h1 {
+                
+                css("h1 {
       font-weight: bold;
       color: {{color_secundario}} !important;
   }"),
-  
-  css("h2 {
+                
+                css("h2 {
       margin-top: 38px !important;
       margin-bottom: 12px !important;
   }"),
-  
-  
-  #estilo de barra slider
-  css("
+                
+                
+                #estilo de barra slider
+                css("
   /*fondo de barra, o sección inactiva*/
   .irs--shiny .irs-line {
   background: none;
@@ -155,9 +172,9 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
   display: none;
   }
   "),
-  
-  #estilo checkboxes
-  css(".checkbox-primary input[type='checkbox']:checked+label::before, .checkbox-primary input[type='radio']:checked+label::before {
+                
+                #estilo checkboxes
+                css(".checkbox-primary input[type='checkbox']:checked+label::before, .checkbox-primary input[type='radio']:checked+label::before {
       background-color: {{color_secundario}};
       border: none;
       top: 1px;
@@ -171,9 +188,9 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
   margin-top: 0;
   color: {{color_texto}};
   }"),
-  
-  #colores pickers
-  tags$style(paste0(".btn.dropdown-toggle { /* color del picker mismo */
+                
+                #colores pickers
+                tags$style(paste0(".btn.dropdown-toggle { /* color del picker mismo */
                    color: black;
   }
                    
@@ -224,271 +241,261 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
          background-color: ", color_secundario, " !important;
          }
   ")),
-  
-  #estilo radio buttons
-  css(".btn-default.active, .btn-default:focus, .btn-default:active:focus {
+                
+                #estilo radio buttons
+                css(".btn-default.active, .btn-default:focus, .btn-default:active:focus {
       color: {{color_texto}} !important;
       border: none;
   }"),
-  
-  
-  #—----
-  
-  #header ----
-  fluidRow(
-    column(12,
-           div(style = "margin-bottom: 12px;",
-               h1("Estadísticas de delincuencia en Chile"),
-               em("Bastián Olea Herrera")
-           ),
-           
-           markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública."), 
-           
-           markdown("Según el [CEAD](https://cead.spd.gov.cl/estadisticas-delictuales/), cada dato se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._"),
-           
-           markdown("El objetivo de esta plataforma es transparentar **datos objetivos sobre la delincuencia en el país,** 
+                
+                
+                #—----
+                
+                #header ----
+                fluidRow(
+                  column(12,
+                         div(style = "margin-bottom: 12px;",
+                             h1("Estadísticas de delincuencia en Chile"),
+                             em("Bastián Olea Herrera")
+                         ),
+                         
+                         markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública."), 
+                         
+                         markdown("Según el [CEAD](https://cead.spd.gov.cl/estadisticas-delictuales/), cada dato se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._"),
+                         
+                         markdown("El objetivo de esta plataforma es transparentar **datos objetivos sobre la delincuencia en el país,** 
              otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político."
-           ),
-           
-           hr()
-    )
-  ),
-  
-  #selectores ----
-  fluidRow(
-    column(4,
-           
-           div(style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}"),
-               em("Seleccione una región, y opcionalmente una comuna, y luego seleccione si desea visualizar los datos a nivel regional o comunal. Por defecto se elige una comuna al azar."),
-           ),
-           
-           pickerInput("region", 
-                       label = h4("Región"),
-                       width = "100%",
-                       choices = as.character(unique(delincuencia$region)),
-                       selected = "Metropolitana de Santiago", 
-                       multiple = F
-           ),
-           
-           pickerInput("comuna",
-                       label = h4("Comuna"),
-                       width = "100%",
-                       multiple = FALSE,
-                       choices = NULL,
-                       options = list(width = FALSE, noneSelectedText = "Sin selección")
-           ),
-           actionButton("azar_comuna", "Elegir comuna al azar", style = "margin-bottom: 14px;"),
-           
-           radioGroupButtons("unidad", 
-                             h4("Unidad a visualizar:"), 
-                             choices = c("Comuna" = "comuna", "Región" = "region"), 
-                             width = "100%", justified = T, individual = F),
-           
-           div(
-             p("Los datos disponibles para esta comuna llegan hasta:", textOutput("max_fecha_datos", inline = T),
-               style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}")
-               )
-             ),
-           
-           div(style = "margin-top: 24px; margin-bottom: 12px;",
-               actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
-                            size = "xs",
-                            style = glue("margin: auto; height: 28px; 
+                         ),
+                         
+                         hr()
+                  )
+                ),
+                
+                #selectores ----
+                fluidRow(
+                  column(4,
+                         
+                         div(style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}"),
+                             em("Seleccione una región, y opcionalmente una comuna, y luego seleccione si desea visualizar los datos a nivel regional o comunal. Por defecto se elige una comuna al azar."),
+                         ),
+                         
+                         pickerInput("region", 
+                                     label = h4("Región"),
+                                     width = "100%",
+                                     choices = as.character(unique(delincuencia$region)),
+                                     selected = "Metropolitana de Santiago", 
+                                     multiple = F
+                         ),
+                         
+                         pickerInput("comuna",
+                                     label = h4("Comuna"),
+                                     width = "100%",
+                                     multiple = FALSE,
+                                     choices = NULL,
+                                     options = list(width = FALSE, noneSelectedText = "Sin selección")
+                         ),
+                         actionButton("azar_comuna", "Elegir comuna al azar", style = "margin-bottom: 14px;"),
+                         
+                         radioGroupButtons("unidad", 
+                                           h4("Unidad a visualizar:"), 
+                                           choices = c("Comuna" = "comuna", "Región" = "region"), 
+                                           width = "100%", justified = T, individual = F),
+                         
+                         div(
+                           p("Los datos disponibles para esta comuna llegan hasta:", textOutput("max_fecha_datos", inline = T),
+                             style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}")
+                           )
+                         ),
+                         
+                         div(style = "margin-top: 24px; margin-bottom: 12px;",
+                             actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
+                                          size = "xs",
+                                          style = glue("margin: auto; height: 28px; 
                         font-size: 84%; padding-top: 5px; 
                         background-color: {color_detalle};
                         color: {color_enlaces};")
-               )
-           ),
-           
-           div(id = "opciones",
-               sliderTextInput(
-                 inputId = "suavizar",
-                 label = h4("Suavizar datos"), 
-                 choices = c("21 días", "14 días", "7 días", "No") |> rev(),
-                 selected = "14 días", 
-               ),
-               
-               shinyWidgets::awesomeCheckbox("sumar", label = "Sumar delitos", value = FALSE),
-               
-               shinyWidgets::awesomeCheckbox("tendencia", label = "Mostrar tendencia", value = FALSE),
-               
-               shinyWidgets::awesomeCheckbox("promedios", label = "Mostrar promedios", value = TRUE),
-               
-               shinyWidgets::awesomeCheckbox("pandemia", label = "Mostrar pandemia", value = TRUE),
-               
-               sliderInput(
-                 inputId = "fecha",
-                 label = h4("Rango de fechas"),
-                 # min = dmy("11-03-2010"),
-                 min = ymd(paste0(datos_año_min, "-01-01")), #dmy("01-01-2018"),
-                 max = today(), 
-                 width = "100%",
-                 value = c(dmy("01-01-2019"), today()), 
-                 timeFormat = "%Y"
-               )
-           ) |> hidden()
-           
-    ),
-    
-    #grafico líneas----
-    column(8,
-           h2(textOutput("titulo_grafico_lineas")),
-           p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo."),
-           
-           pickerInput("delitos",
-                       label = h4("Delitos"),
-                       width = "100%",
-                       multiple = TRUE,
-                       choices = lista_delitos,
-                       selected = c("Homicidios", "Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado"),
-                       options = list(maxOptions = 8, 
-                                      maxOptionsText = "Máximo 8",
-                                      noneSelectedText = "Sin selección",
-                                      width = FALSE)
-           ),
-           
-           plotOutput("grafico", width = "100%", height = 720) |> 
-             withSpinner(color = color_secundario, type = 8),
-           
-           
-    )
-  ),
-  
-  #gráfico anuales y presidentes ----
-  fluidRow(
-    column(7,
-           h2(textOutput("titulo_grafico_anual")),
-           p("Esta visualización representa la evolución de la cantidad de delitos totales ocurridos por año en la comuna o región seleccionada, indicando cambios históricos en la delincuencia. Las líneas horizontales destacan los puntos mínimos, promedio y máximos de la cantidad anual de delitos, en colores verde, naranjo y rojo, respectivamente."),
-           
-           plotOutput("grafico_anuales", height = 400) |> 
-             withSpinner(color = color_secundario, type = 8)
-    ),
-    column(5, style = "height: 400;",
-           h2(textOutput("titulo_grafico_presidentes")),
-           p("Las barras de este gráfico representan cada uno de los periodos presidenciales más recientes, y la cifra indicada corresponde a la cantidad de delitos mensuales promedio ocurridos en dicho periodo. Esto permite comparar la frecuencia con la que acontecieron delitos en cada gobierno."),
-           
-           div(style = "padding-top: 24px; padding-bottom: 48px;",
-               plotOutput("grafico_presidentes", height = 260) |> 
-                 withSpinner(color = color_secundario, type = 8)
-           )
-    )
-  ),
-  
-  #gráfico comparación años  ----
-  
-  fluidRow(
-    column(12,
-           h2(textOutput("titulo_grafico_comparativo")),
-           markdown("Selecciona dos años para comparar las **tasas de delitos** en la comuna seleccionada. 
+                             )
+                         ),
+                         
+                         div(id = "opciones",
+                             sliderTextInput(
+                               inputId = "suavizar",
+                               label = h4("Suavizar datos"), 
+                               choices = c("21 días", "14 días", "7 días", "No") |> rev(),
+                               selected = "14 días", 
+                             ),
+                             
+                             shinyWidgets::awesomeCheckbox("sumar", label = "Sumar delitos", value = FALSE),
+                             
+                             shinyWidgets::awesomeCheckbox("tendencia", label = "Mostrar tendencia", value = FALSE),
+                             
+                             shinyWidgets::awesomeCheckbox("promedios", label = "Mostrar promedios", value = TRUE),
+                             
+                             shinyWidgets::awesomeCheckbox("pandemia", label = "Mostrar pandemia", value = TRUE),
+                             
+                             sliderInput(
+                               inputId = "fecha",
+                               label = h4("Rango de fechas"),
+                               # min = dmy("11-03-2010"),
+                               min = ymd(paste0(datos_año_min, "-01-01")), #dmy("01-01-2018"),
+                               max = today(), 
+                               width = "100%",
+                               value = c(dmy("01-01-2019"), today()), 
+                               timeFormat = "%Y"
+                             )
+                         ) |> hidden()
+                         
+                  ),
+                  
+                  #grafico líneas----
+                  column(8,
+                         h2(textOutput("titulo_grafico_lineas")),
+                         p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo."),
+                         
+                         pickerInput("delitos",
+                                     label = h4("Delitos"),
+                                     width = "100%",
+                                     multiple = TRUE,
+                                     choices = lista_delitos,
+                                     selected = c("Hurtos", 
+                                                  "Robos con violencia o intimidación", 
+                                                  "Robo de vehículo motorizado",
+                                                  "Robo en lugar habitado", 
+                                                  "Robo por sorpresa"),
+                                     options = list(maxOptions = 8, 
+                                                    maxOptionsText = "Máximo 8",
+                                                    noneSelectedText = "Sin selección",
+                                                    width = FALSE)
+                         ),
+                         
+                         plotOutput("grafico", width = "100%", height = 720) |> 
+                           withSpinner(color = color_secundario, type = 8),
+                         
+                         
+                  )
+                ),
+                
+                #gráfico anuales y presidentes ----
+                fluidRow(
+                  column(7,
+                         h2(textOutput("titulo_grafico_anual")),
+                         p("Esta visualización representa la evolución de la cantidad de delitos totales ocurridos por año en la comuna o región seleccionada, indicando cambios históricos en la delincuencia. Las líneas horizontales destacan los puntos mínimos, promedio y máximos de la cantidad anual de delitos, en colores verde, naranjo y rojo, respectivamente."),
+                         
+                         plotOutput("grafico_anuales", height = 400) |> 
+                           withSpinner(color = color_secundario, type = 8)
+                  ),
+                  column(5, style = "height: 400;",
+                         h2(textOutput("titulo_grafico_presidentes")),
+                         p("Las barras de este gráfico representan cada uno de los periodos presidenciales más recientes, y la cifra indicada corresponde a la cantidad de delitos mensuales promedio ocurridos en dicho periodo. Esto permite comparar la frecuencia con la que acontecieron delitos en cada gobierno."),
+                         
+                         div(style = "padding-top: 24px; padding-bottom: 48px;",
+                             plotOutput("grafico_presidentes", height = 260) |> 
+                               withSpinner(color = color_secundario, type = 8)
+                         )
+                  )
+                ),
+                
+                #gráfico comparación años  ----
+                
+                fluidRow(
+                  column(12,
+                         h2(textOutput("titulo_grafico_comparativo")),
+                         markdown("Selecciona dos años para comparar las **tasas de delitos** en la comuna seleccionada. 
              Esta medida permite analizar si los delitos aumentaron o disminuyeron entre ambas fechas. 
              Al utilizar la tasa de delitos; es decir, la cantidad de delitos reportados por cada 1.000 habitantes,
              es posible comparar delitos entre distintas fechas al considerar en el cálculo los cambios en la población de la comuna (es decir, si en una comuna los delitos se mantienen entre dos años, pero la población disminuye, entonces los delitos _bajan)_.
              Los datos de población se obtienen desde las [proyecciones de población del INE.](https://bastianoleah.shinyapps.io/censo_proyecciones/)"),
-           div(style = "opacity: 0.6; font-size: 80%;",
-               markdown("La idea de este gráfico fue originalmente concebida por [Ernesto Laval](https://x.com/elaval/status/1768858137979740248?s=20), quien la implementó en [su propio visualizador de datos.](https://observablehq.com/@elaval/comparacion-tasa-de-delitos)")
-           ),
-           
-           div(style = "margin-top: 12px;display: inline-block;",
-               pickerInput("comparativo_año_1", label = "Primer año",
-                           choices = datos_año_min:2023, selected = 2019, 
-                           multiple = F, inline = T),
-               pickerInput("comparativo_año_2", label = "Segundo año",
-                           choices = datos_año_min:2023, selected = 2023,
-                           multiple = F, inline = T)
-           ),
-           
-           div(style = "margin-top: 24px;",
-               plotOutput("grafico_comparativo", height = 600) |> 
-                 withSpinner(color = color_secundario, type = 8)
-           )
-    )
-  ),
-  
-  #gráfico delitos principales por año ----
-  fluidRow(
-    column(12, style = "margin-top: 20px;",
-           h2(textOutput("titulo_delitos_principales")),
-           p("En este gráfico se representan, por cada año del que se poseen datos oficiales, los tres delitos más frecuentes en la comuna o región elegida. El color de cada barra corresponde a un delito distinto, indicado en la leyenda de abajo. Al costado derecho del gráfico se presentan las cifras y años donde cada uno de los principales delitos alcanzó su máximo."),
-           
-           div(style = "margin-top: 24px;",
-               plotOutput("grafico_principales", height = 600) |> 
-                 withSpinner(color = color_secundario, type = 8)
-           )
-    )
-  ),
-  
-  # tabla ----
-  fluidRow(
-    column(12, style = "margin-top: 30px;",
-           # h2("Datos de delincuencia"),
-           h2(textOutput("titulo_tabla")),
-           p("En esta tabla se disponen todos los datos de delitos correspondientes a la comuna o región seleccionada. A continuación, selecicone un año y especifique los delitos a considerar para visualizar los datos en la tabla."),
-           
-           div(style = "max-width: 460px;",
-           sliderInput(
-             inputId = "año_tabla",
-             label = h4("Seleccione un año"),
-             min = datos_año_min,
-             max = 2023,
-             value = 2023, sep = "", width = "100%"
-           )
-           ),
-           
-           pickerInput("delitos_tabla",
-                       label = h4("Delitos"),
-                       width = "100%",
-                       multiple = TRUE,
-                       choices = lista_delitos,
-                       selected = c("Hurtos", "Robo con violencia o intimidación", 
-                                    "Robo en lugar habitado",
-                                    "Robo en lugar no habitado",
-                                    "Robo de vehículo motorizado",
-                                    "Robo de objetos de o desde vehículo",
-                                    "Robo por sorpresa",
-                                    "Robo frustrado",
-                                    "Homicidios",
-                                    "Violencia intrafamiliar a mujer",
-                                    "Abusos sexuales y otros delitos sexuales",
-                                    "Violaciones",
-                                    "Consumo alcohol vía pública",
-                                    "Lesiones menos graves, graves o gravísimas",
-                                    "Lesiones leves",
-                                    "Comercio ambulante o clandestino",
-                                    "Daños",
-                                    "Amenazas",
-                                    "Otros robos con fuerza"),
-                       options = list(maxOptions = 8, 
-                                      maxOptionsText = "Máximo 8",
-                                      noneSelectedText = "Sin selección",
-                                      width = FALSE)
-           ),
-           
-           br(),
-           h3(textOutput("titulo_tabla2")),
-           
-           div(style = "margin-top: -10px;",
-           gt_output("tabla") |> withSpinner(color = color_secundario, type = 8)
-           )
-    )
-  ),
-  
-  # firma ----
-  fluidRow(
-    column(12, style = "padding: 28px; font-size: 90%;",
-           hr(),
-           
-           markdown("Desarrollado en R+Shiny por [Bastián Olea Herrera.](https://bastian.olea.biz)"),
-           
-           markdown("Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)"),
-           
-           markdown("Fuente de los datos: [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/)"),
-           
-           markdown("Código de fuente de esta app y del procesamiento de los datos [disponible en GitHub.](https://github.com/bastianolea/delincuencia_chile)"),
-           
-           markdown("Los datos se obtuvieron desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial](https://bastianolea.github.io/tutorial_r_datos_delincuencia/)")
-    )
-  )
-  
+                         div(style = "opacity: 0.6; font-size: 80%;",
+                             markdown("La idea de este gráfico fue originalmente concebida por [Ernesto Laval](https://x.com/elaval/status/1768858137979740248?s=20), quien la implementó en [su propio visualizador de datos.](https://observablehq.com/@elaval/comparacion-tasa-de-delitos)")
+                         ),
+                         
+                         div(style = "margin-top: 12px;display: inline-block;",
+                             pickerInput("comparativo_año_1", label = "Primer año",
+                                         choices = datos_año_min:2023, selected = 2019, 
+                                         multiple = F, inline = T),
+                             pickerInput("comparativo_año_2", label = "Segundo año",
+                                         choices = datos_año_min:2023, selected = 2023,
+                                         multiple = F, inline = T)
+                         ),
+                         
+                         div(style = "margin-top: 24px;",
+                             plotOutput("grafico_comparativo", height = 600) |> 
+                               withSpinner(color = color_secundario, type = 8)
+                         )
+                  )
+                ),
+                
+                #gráfico delitos principales por año ----
+                fluidRow(
+                  column(12, style = "margin-top: 20px;",
+                         h2(textOutput("titulo_delitos_principales")),
+                         p("En este gráfico se representan, por cada año del que se poseen datos oficiales, los tres delitos más frecuentes en la comuna o región elegida. El color de cada barra corresponde a un delito distinto, indicado en la leyenda de abajo. Al costado derecho del gráfico se presentan las cifras y años donde cada uno de los principales delitos alcanzó su máximo."),
+                         
+                         div(style = "margin-top: 24px;",
+                             plotOutput("grafico_principales", height = 600) |> 
+                               withSpinner(color = color_secundario, type = 8)
+                         )
+                  )
+                ),
+                
+                # tabla ----
+                fluidRow(
+                  column(12, style = "margin-top: 30px;",
+                         # h2("Datos de delincuencia"),
+                         h2(textOutput("titulo_tabla")),
+                         p("En esta tabla se disponen todos los datos de delitos correspondientes a la comuna o región seleccionada. A continuación, selecicone un año y especifique los delitos a considerar para visualizar los datos en la tabla."),
+                         
+                         div(style = "max-width: 460px;",
+                             sliderInput(
+                               inputId = "año_tabla",
+                               label = h4("Seleccione un año"),
+                               min = datos_año_min,
+                               max = 2023,
+                               value = 2023, sep = "", width = "100%"
+                             )
+                         ),
+                         
+                         pickerInput("delitos_tabla",
+                                     label = h4("Delitos"),
+                                     width = "100%",
+                                     multiple = TRUE,
+                                     choices = lista_delitos,
+                                     selected = c("Homicidios", "Amenazas o riña", "Consumo de alcohol y drogas en la vía pública", 
+                                                  "Hurtos", "Daños", "Violencia intrafamiliar a mujer", "Robos con violencia o intimidación", 
+                                                  "Lesiones leves", "Robo de objetos de o desde vehículo", "Robo en lugar habitado", 
+                                                  "Robos en lugar no habitado"),
+                                     options = list(maxOptions = 8, 
+                                                    maxOptionsText = "Máximo 8",
+                                                    noneSelectedText = "Sin selección",
+                                                    width = FALSE)
+                         ),
+                         
+                         br(),
+                         h3(textOutput("titulo_tabla2")),
+                         
+                         div(style = "margin-top: -10px;",
+                             gt_output("tabla") |> withSpinner(color = color_secundario, type = 8)
+                         )
+                  )
+                ),
+                
+                # firma ----
+                fluidRow(
+                  column(12, style = "padding: 28px; font-size: 90%;",
+                         hr(),
+                         
+                         markdown("Desarrollado en R+Shiny por [Bastián Olea Herrera.](https://bastian.olea.biz)"),
+                         
+                         markdown("Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)"),
+                         
+                         markdown("Fuente de los datos: [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/)"),
+                         
+                         markdown("Código de fuente de esta app y del procesamiento de los datos [disponible en GitHub.](https://github.com/bastianolea/delincuencia_chile)"),
+                         
+                         markdown("Los datos se obtuvieron desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial](https://bastianolea.github.io/tutorial_r_datos_delincuencia/)")
+                  )
+                )
+                
 )
 
 #—----
@@ -553,7 +560,7 @@ server <- function(input, output, session) {
     
     delincuencia |> 
       filter(region == input$region) |> 
-      summarize(delitos = sum(delitos), .by = c(fecha, delito, region))
+      summarize(delitos = sum(delitos), .by = c(fecha, delito, region, cut_region))
     # browser()
   })
   
@@ -563,6 +570,7 @@ server <- function(input, output, session) {
     } else if (input$unidad == "region") {
       datos <- datos_region() |> rename(unidad = region)
     }
+    return(datos)
   })
   
   output$max_fecha_datos <- renderText({
@@ -1085,19 +1093,28 @@ server <- function(input, output, session) {
   # censo <- reactive(arrow::read_parquet("censo_proyecciones_año.parquet"))
   
   datos_comparativo <- reactive({
-    delitos_graves <- c("Hurtos", "Robo con violencia o intimidación", "Robo en lugar habitado",
-                        "Robo de vehículo motorizado",
-                        "Robo de objetos de o desde vehículo",
-                        "Robo por sorpresa",
-                        "Robo frustrado",
-                        "Homicidios",
-                        "Violencia intrafamiliar a mujer")
+    req(datos_unidad())
+    # browser()
     
     datos <- datos_unidad() |> 
       mutate(año = year(fecha)) |> 
       filter(año %in% c(input$comparativo_año_1, input$comparativo_año_2)) |> 
-      filter(delito %in% delitos_graves) |> 
-      left_join(censo, by = join_by(cut_comuna, año))
+      filter(delito %in% delitos_graves)
+    
+    # agregar datos del censo
+    if (input$unidad == "comuna") {
+      datos <- datos |> 
+        left_join(censo, by = join_by(cut_comuna, año))
+      
+    } else if (input$unidad == "region") {
+      # browser()
+      
+      censo_region <- censo |> 
+        summarize(población = sum(población), .by = c(cut_region, region, año))
+      
+      datos <- datos |> 
+        left_join(censo_region, by = join_by(cut_region, año))
+    }
     
     datos |> 
       group_by(delito, año) |> 
@@ -1218,12 +1235,28 @@ server <- function(input, output, session) {
     req(length(input$comuna) == 1)
     req(datos())
     message("tabla...")
+    # browser()
     
     datos_filt <- datos_unidad() |> 
       select(fecha, unidad, delito, delitos) |> 
       arrange(fecha, desc(delitos)) |> 
       filter(year(fecha) == input$año_tabla) |>
       filter(delito %in% input$delitos_tabla)
+    
+    # datos_filt |> print(n=Inf)
+    # 
+    # datos_filt |> 
+    #   group_by(fecha) |> 
+    #   count(delito) |> 
+    #   arrange(desc(n))
+    # 
+    # datos_filt |> 
+    #   filter(fecha == "2023-12-01")
+    # 
+    # datos_filt |> 
+    #   mutate(mes = month(fecha)) |> 
+    #   filter(mes == 4)
+    #   summarize(delitos = sum(delitos), .by = c(unidad, delito))
     
     datos_tabla <- datos_filt |> 
       tidyr::pivot_wider(names_from = delito, values_from = delitos) |> 
@@ -1251,11 +1284,11 @@ server <- function(input, output, session) {
                  fn = scales::col_numeric(palette = c(color_fondo, color_secundario), #color_destacado), 
                                           domain = NULL)
                  
-                 ) |> 
-                 # palette = color_detalle2, na_color = color_texto) |>
+      ) |> 
+      # palette = color_detalle2, na_color = color_texto) |>
       # fmt_number(columns = monto, sep_mark = ".", decimals = 0) |> 
       tab_style(style = cell_borders(color = color_fondo, weight = px(2), style = "solid"),
-        locations = cells_body()
+                locations = cells_body()
       ) |> 
       cols_label(mes = "Mes") |> 
       tab_options(table.font.color = color_texto, table.font.color.light = color_texto, 

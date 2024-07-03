@@ -25,6 +25,8 @@ cead_limpiada <- cead_limpiar_resultados(datos_cead, comunas_por_calcular)
 
 
 #ordenar ----
+
+
 # filtrar delitos que en la tabla son agrupaciones de delitos individuales, como categorías de delitos que engloban delitos similares,
 # para así dejar solo delitos puntuales, de lo contrario al sumar los delitos habrían conteos repetidos y la cifra sería incorrecta
 cead_limpiada_2 <- cead_limpiada |> 
@@ -35,7 +37,12 @@ cead_limpiada_2 <- cead_limpiada |>
                          "Delitos asociados a armas", "Otros delitos o faltas",
                          "Homicidios y femicidios", "Violaciones y delitos sexuales",
                          "Crímenes y simples delitos ley de armas", "Robos en lugares habitados y no habitados",
-                         "Robos en vehículos y sus accesorios", "Otras incivilidades"))
+                         "Robos en vehículos y sus accesorios", "Otras incivilidades")) |> 
+  #recodificar homicidios
+  mutate(delitos = recode(delitos,
+                          "Otros homicidios" = "Homicidios"))
+
+sort(unique(cead_limpiada_2$delitos))
 
 # cead_limpiada_2 |> arrange(año, delitos, cut_comuna) |> filter(año == 2020) |> print(n=100)
 # unique(cead_limpiada_2$mes)
@@ -51,8 +58,20 @@ cead_limpiada_3 <- cead_limpiada_2 |>
   mutate(arreglar_n = ifelse(arreglar == TRUE, 1:n(), NA),
          arreglar_n_total = n()) |> #cantidad de filas, ergo de meses... en el delito repetido son 24, en otros 12 o menos
   ungroup() |> 
-  filter(arreglar == FALSE | (arreglar == TRUE & arreglar_n >= arreglar_n_total/2)) |>
-  select(-arreglar, -arreglar_n)
+  filter(arreglar == FALSE | (arreglar == TRUE & arreglar_n > arreglar_n_total/2)) |>
+  select(-arreglar, -arreglar_n, -arreglar_n_total)
+  # filter(año == 2023) |> 
+  # print(n=30)
+
+# cead_limpiada_3 |> 
+#   filter(año == 2023,
+#          delitos == "Robos con violencia o intimidación") |> 
+#   print(n=30)
+# 
+# cead_limpiada_3 |> 
+#   group_by(delitos, cut_comuna, año) |> 
+#   mutate(n = n()) |> 
+#   filter(n > 12)
 
 # crear fecha, corregir formatos de columnas
 cead_limpiada_4 <- cead_limpiada_3 |> 
@@ -64,6 +83,7 @@ cead_limpiada_4 <- cead_limpiada_3 |>
   left_join(cargar_comunas(), join_by(cut_comuna)) |> 
   mutate(across(where(is.character), as.factor)) |> 
   select(comuna, cut_comuna, region, cut_region, fecha, delito, delito_n, everything())
+
 
 # cortar fecha de corte de la base de datos manualmente, porque cead reporta 0 delitos en meses donde no tiene datos, o sea que si la base llega hasta marzo de 2024, abril 2024 muestra 0
 cead_limpiada_5 <- cead_limpiada_4 |> 
@@ -134,6 +154,7 @@ cead_unido |>
 
 # para la app
 arrow::write_parquet(cead_unido, "app/cead_delincuencia.parquet")
+# cead_unido <- arrow::read_parquet("app/cead_delincuencia.parquet")
 
 # para usuarios
 arrow::write_parquet(cead_unido, "datos_procesados/cead_delincuencia_chile.parquet")
