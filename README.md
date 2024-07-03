@@ -37,6 +37,13 @@ Los datos se obtuvieron directamente desde CEAD haciendo uso de [técnicas de we
 ![Gráfico](graficos/grafico_comparativo_tasa_ñuñoa_2019_2023.png)
 
 
+## Actualizaciones
+
+**Actualización 02/07/2024:**
+- Datos actualizados hasta marzo de 2024 (máximo disponible en CEAD a la fecha)
+- Los datos ahora representan _casos policiales_ en vez de solo _denuncias._ Los casos policiales "consideran las denuncias de delitos que realiza la comunidad en las unidades policiales, más las detenciones que realizan las policías ante la ocurrencia de delitos flagrantes".
+
+
 ----
 
 Diseñado y programado en R por Bastián Olea Herrera. Magíster en Sociología, data scientist.

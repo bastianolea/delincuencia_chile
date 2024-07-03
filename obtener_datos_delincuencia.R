@@ -13,10 +13,11 @@ source("funciones_delincuencia.R")
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
+# comunas_por_calcular = 1101
 
 # años_elegidos = 2010:2023
 # años_elegidos = 2010:2024
-años_elegidos = 2024
+años_elegidos = 2014:2024
 
 # scraping por api ----
 # ejecuta la obtención de datos, por comuna y por año, haciendo requests al sitio de cead
@@ -29,7 +30,9 @@ datos_cead <- cead_descargar_datos(años_elegidos, comunas_por_calcular)
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023_2024.rds", compress = "gz")
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2010_2024.rds", compress = "gz")
-readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2024_3.rds", compress = "gz")
+# readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2024_3.rds", compress = "gz")
+readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_casospoliciales_2014_2024.rds", compress = "gz")
+
 # datos_cead <- readr::read_rds("datos/cead_delincuencia_crudo_todos_2010_2024.rds")
 
 #—----
@@ -55,7 +58,17 @@ cead <- cead_limpiada |>
   filter(delitos != "Delitos de mayor connotación social",
          delitos != "Incivilidades",
          delitos != "Violencia intrafamiliar",
-         # !delitos %in% c("Violencia intrafamiliar a adulto mayor", "Violencia intrafamiliar a hombre", "Violencia intrafamiliar a mujer", "Violencia intrafamiliar a niño", "Violencia intrafamiliar no clasificado"),
+         # DELITOS VIOLENTOS
+         # DELITOS CONTRA LA PROPIEDAD NO VIOLENTOS
+         # DELITOS ASOCIADOS A ARMAS
+         # OTROS DELITOS O FALTAS
+         # Homicidios y femicidios
+         # Violaciones y delitos sexuales
+         # Crímenes y simples delitos ley de armas
+         # Robos en lugares habitados y no habitados
+         # Robos en vehículos y sus accesorios
+         # Otras incivilidades
+         # Robos con violencia o intimidación #sale dos veces, una es agrupación con robo violento de vehiculo motorizado y otra es el real
          ) |> 
   mutate(fecha = lubridate::ymd(paste(año, mes, 1))) |> 
   select(fecha, cut_comuna, delito = delitos, delito_n = cifra) |>

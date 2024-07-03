@@ -12,36 +12,14 @@ cargar_comunas <- function() {
 
 
 # función que genera el texto de request en base a los delitos que se necesita obtener
-cead_generar_request <- function(año_elegido, comuna_numero, delitos = "todos") {
-  request_fechas = "&trimestre%5B%5D=1&trimestre%5B%5D=2&trimestre%5B%5D=3&trimestre%5B%5D=4&mes%5B%5D=1&mes%5B%5D=2&mes%5B%5D=3&mes%5B%5D=4&mes%5B%5D=5&mes%5B%5D=6&mes%5B%5D=7&mes%5B%5D=8&mes%5B%5D=9&mes%5B%5D=10&mes%5B%5D=11&mes%5B%5D=12&mes_nombres%5B%5D=Enero&mes_nombres%5B%5D=Febrero&mes_nombres%5B%5D=Marzo&mes_nombres%5B%5D=Abril&mes_nombres%5B%5D=Mayo&mes_nombres%5B%5D=Junio&mes_nombres%5B%5D=Julio&mes_nombres%5B%5D=Agosto&mes_nombres%5B%5D=Septiembre&mes_nombres%5B%5D=Octubre&mes_nombres%5B%5D=Noviembre&mes_nombres%5B%5D=Diciembre"
+cead_generar_request <- function(año_elegido, comuna_numero) {
   
-  if  (delitos == "incivilidades") {
-    #para ica 9
-    request_delitos = "&delitos_agrupados%5B%5D=3&delitos_agrupados%5B%5D=4&delitos_agrupados%5B%5D=7&delitos_agrupados_nombres%5B%5D=Delitos+de+mayor+connotaci%C3%B3n+social&delitos_agrupados_nombres%5B%5D=Incivilidades&delitos_agrupados_nombres%5B%5D=Robo+frustrado&delitos%5B%5D=16&delitos%5B%5D=17&delitos%5B%5D=20&delitos%5B%5D=22&delitos%5B%5D=23&delitos%5B%5D=21&delitos%5B%5D=5&delitos%5B%5D=6&delitos%5B%5D=19&delitos%5B%5D=13&delitos%5B%5D=30&delitos%5B%5D=8&delitos_nombres%5B%5D=Comercio+ambulante+o+clandestino&delitos_nombres%5B%5D=Consumo+alcohol+v%C3%ADa+p%C3%BAblica&delitos_nombres%5B%5D=Ebriedad&delitos_nombres%5B%5D=Ri%C3%B1a+p%C3%BAblica&delitos_nombres%5B%5D=Ruidos+molestos&delitos_nombres%5B%5D=Otras+incivilidades&delitos_nombres%5B%5D=Lesiones+leves&delitos_nombres%5B%5D=Lesiones+menos+graves%2C+graves+o+grav%C3%ADsimas&delitos_nombres%5B%5D=Des%C3%B3rdenes&delitos_nombres%5B%5D=Robo+por+sorpresa&delitos_nombres%5B%5D=Robo+frustrado&delitos_nombres%5B%5D=Robo+con+violencia+o+intimidaci%C3%B3n"
-  
-    } else if (delitos == "delitos sexuales") {
-    request_delitos = "&delitos_agrupados%5B%5D=2&delitos_agrupados%5B%5D=8&delitos_agrupados_nombres%5B%5D=Abusos+sexuales+y+otros+delitos+sexuales&delitos_agrupados_nombres%5B%5D=Violencia+intrafamiliar"
-  
-    } else if (delitos == "robos") {
-    #para ica 15
-    request_delitos = "&delitos_agrupados%5B%5D=3&delitos_agrupados%5B%5D=7&delitos_agrupados_nombres%5B%5D=Delitos+de+mayor+connotaci%C3%B3n+social&delitos_agrupados_nombres%5B%5D=Robo+frustrado&delitos%5B%5D=8&delitos%5B%5D=10&delitos%5B%5D=9&delitos%5B%5D=11&delitos%5B%5D=12&delitos%5B%5D=30&delitos%5B%5D=13&delitos%5B%5D=7&delitos%5B%5D=4&delitos_nombres%5B%5D=Robo+con+violencia+o+intimidaci%C3%B3n&delitos_nombres%5B%5D=Robo+de+veh%C3%ADculo+motorizado&delitos_nombres%5B%5D=Robo+de+objetos+de+o+desde+veh%C3%ADculo&delitos_nombres%5B%5D=Robo+en+lugar+habitado&delitos_nombres%5B%5D=Robo+en+lugar+no+habitado&delitos_nombres%5B%5D=Robo+frustrado&delitos_nombres%5B%5D=Robo+por+sorpresa&delitos_nombres%5B%5D=Otros+robos+con+fuerza&delitos_nombres%5B%5D=Hurtos"
-  
-    } else if (delitos == "incivilidades y robos") {
-    request_delitos = "&delitos_agrupados%5B%5D=3&delitos_agrupados%5B%5D=4&delitos_agrupados%5B%5D=7&delitos_agrupados_nombres%5B%5D=Delitos+de+mayor+connotaci%C3%B3n+social&delitos_agrupados_nombres%5B%5D=Incivilidades&delitos_agrupados_nombres%5B%5D=Robo+frustrado&delitos%5B%5D=16&delitos%5B%5D=17&delitos%5B%5D=20&delitos%5B%5D=22&delitos%5B%5D=23&delitos%5B%5D=21&delitos%5B%5D=5&delitos%5B%5D=6&delitos%5B%5D=19&delitos%5B%5D=13&delitos%5B%5D=30&delitos%5B%5D=8&delitos_nombres%5B%5D=Comercio+ambulante+o+clandestino&delitos_nombres%5B%5D=Consumo+alcohol+v%C3%ADa+p%C3%BAblica&delitos_nombres%5B%5D=Ebriedad&delitos_nombres%5B%5D=Ri%C3%B1a+p%C3%BAblica&delitos_nombres%5B%5D=Ruidos+molestos&delitos_nombres%5B%5D=Otras+incivilidades&delitos_nombres%5B%5D=Lesiones+leves&delitos_nombres%5B%5D=Lesiones+menos+graves%2C+graves+o+grav%C3%ADsimas&delitos_nombres%5B%5D=Des%C3%B3rdenes&delitos_nombres%5B%5D=Robo+por+sorpresa&delitos_nombres%5B%5D=Robo+frustrado&delitos_nombres%5B%5D=Robo+con+violencia+o+intimidaci%C3%B3n&delitos_agrupados%5B%5D=3&delitos_agrupados%5B%5D=7&delitos_agrupados_nombres%5B%5D=Delitos+de+mayor+connotaci%C3%B3n+social&delitos_agrupados_nombres%5B%5D=Robo+frustrado&delitos%5B%5D=8&delitos%5B%5D=10&delitos%5B%5D=9&delitos%5B%5D=11&delitos%5B%5D=12&delitos%5B%5D=30&delitos%5B%5D=13&delitos%5B%5D=7&delitos%5B%5D=4&delitos_nombres%5B%5D=Robo+con+violencia+o+intimidaci%C3%B3n&delitos_nombres%5B%5D=Robo+de+veh%C3%ADculo+motorizado&delitos_nombres%5B%5D=Robo+de+objetos+de+o+desde+veh%C3%ADculo&delitos_nombres%5B%5D=Robo+en+lugar+habitado&delitos_nombres%5B%5D=Robo+en+lugar+no+habitado&delitos_nombres%5B%5D=Robo+frustrado&delitos_nombres%5B%5D=Robo+por+sorpresa&delitos_nombres%5B%5D=Otros+robos+con+fuerza&delitos_nombres%5B%5D=Hurtos"
-  
-    
-    } else if (delitos == "todos") {
-      # query donde se seleccionaron todos los delitos disponibles en el sitio
-      request_delitos = "&delitos_agrupados%5B%5D=3&delitos_agrupados%5B%5D=5&delitos_agrupados%5B%5D=4&delitos_agrupados%5B%5D=1&delitos_agrupados%5B%5D=2&delitos_agrupados%5B%5D=8&delitos_agrupados%5B%5D=6&delitos_agrupados%5B%5D=7&delitos_agrupados_nombres%5B%5D=Delitos+de+mayor+connotaci%C3%B3n+social&delitos_agrupados_nombres%5B%5D=Infracci%C3%B3n+a+ley+de+armas&delitos_agrupados_nombres%5B%5D=Incivilidades&delitos_agrupados_nombres%5B%5D=Abigeato&delitos_agrupados_nombres%5B%5D=Abusos+sexuales+y+otros+delitos+sexuales&delitos_agrupados_nombres%5B%5D=Violencia+intrafamiliar&delitos_agrupados_nombres%5B%5D=Receptaci%C3%B3n&delitos_agrupados_nombres%5B%5D=Robo+frustrado&delitos%5B%5D=35&delitos%5B%5D=34&delitos%5B%5D=33&delitos%5B%5D=32&delitos%5B%5D=31&delitos%5B%5D=14&delitos%5B%5D=28&delitos%5B%5D=23&delitos%5B%5D=13&delitos%5B%5D=30&delitos%5B%5D=12&delitos%5B%5D=11&delitos%5B%5D=10&delitos%5B%5D=9&delitos%5B%5D=8&delitos%5B%5D=22&delitos%5B%5D=29&delitos%5B%5D=27&delitos%5B%5D=7&delitos%5B%5D=26&delitos%5B%5D=21&delitos%5B%5D=6&delitos%5B%5D=5&delitos%5B%5D=4&delitos%5B%5D=3&delitos%5B%5D=25&delitos%5B%5D=20&delitos%5B%5D=19&delitos%5B%5D=18&delitos%5B%5D=17&delitos%5B%5D=16&delitos%5B%5D=15&delitos%5B%5D=2&delitos%5B%5D=1&delitos%5B%5D=24&delitos_nombres%5B%5D=Violencia+intrafamiliar+no+clasificado&delitos_nombres%5B%5D=Violencia+intrafamiliar+a+ni%C3%B1o&delitos_nombres%5B%5D=Violencia+intrafamiliar+a+mujer&delitos_nombres%5B%5D=Violencia+intrafamiliar+a+hombre&delitos_nombres%5B%5D=Violencia+intrafamiliar+a+adulto+mayor&delitos_nombres%5B%5D=Violaciones&delitos_nombres%5B%5D=Tenencia+ilegal+de+armas+o+explosivos&delitos_nombres%5B%5D=Ruidos+molestos&delitos_nombres%5B%5D=Robo+por+sorpresa&delitos_nombres%5B%5D=Robo+frustrado&delitos_nombres%5B%5D=Robo+en+lugar+no+habitado&delitos_nombres%5B%5D=Robo+en+lugar+habitado&delitos_nombres%5B%5D=Robo+de+veh%C3%ADculo+motorizado&delitos_nombres%5B%5D=Robo+de+objetos+de+o+desde+veh%C3%ADculo&delitos_nombres%5B%5D=Robo+con+violencia+o+intimidaci%C3%B3n&delitos_nombres%5B%5D=Ri%C3%B1a+p%C3%BAblica&delitos_nombres%5B%5D=Receptaci%C3%B3n&delitos_nombres%5B%5D=Porte+de+armas&delitos_nombres%5B%5D=Otros+robos+con+fuerza&delitos_nombres%5B%5D=Otros+ley+de+armas&delitos_nombres%5B%5D=Otras+incivilidades&delitos_nombres%5B%5D=Lesiones+menos+graves%2C+graves+o+grav%C3%ADsimas&delitos_nombres%5B%5D=Lesiones+leves&delitos_nombres%5B%5D=Hurtos&delitos_nombres%5B%5D=Homicidios&delitos_nombres%5B%5D=Hallazgo+de+armas+o+explosivos&delitos_nombres%5B%5D=Ebriedad&delitos_nombres%5B%5D=Des%C3%B3rdenes&delitos_nombres%5B%5D=Da%C3%B1os&delitos_nombres%5B%5D=Consumo+alcohol+v%C3%ADa+p%C3%BAblica&delitos_nombres%5B%5D=Comercio+ambulante+o+clandestino&delitos_nombres%5B%5D=Amenazas&delitos_nombres%5B%5D=Abusos+sexuales+y+otros+delitos+sexuales&delitos_nombres%5B%5D=Abigeato&delitos_nombres%5B%5D=Abandono+de+armas"
-    }
-  
-  request <- paste0("medida=1&tipoVal=2", # tipoVal 1 es "casos policiales", 2 es "denuncias", medida es si es frecuencia o  tasa
-                    "&anio%5B%5D=", año_elegido, request_fechas, 
-                    request_delitos,
-                    #"&region%5B%5D=", numero_region,
-                    #"&provincia%5B%5D=", numero_provincia, 
-                    "&comuna%5B%5D=", comuna_numero, 
-                    "&seleccion=2&descarga=false"
+  # existe un ejemplo de una request en la carpeta otros
+  request <- paste0("medida=1&tipoVal=1%2C2",
+                    "&anio%5B%5D=", año_elegido, 
+                    "&trimestre%5B%5D=1&trimestre%5B%5D=2&mes%5B%5D=1&mes%5B%5D=2&mes%5B%5D=3&mes%5B%5D=4&mes%5B%5D=5&mes%5B%5D=6&mes%5B%5D=7&mes%5B%5D=8&mes%5B%5D=9&mes%5B%5D=10&mes%5B%5D=11&mes%5B%5D=12&mes_nombres%5B%5D=Enero&mes_nombres%5B%5D=Febrero&mes_nombres%5B%5D=Marzo&mes_nombres%5B%5D=Abril&mes_nombres%5B%5D=Mayo&mes_nombres%5B%5D=Junio&mes_nombres%5B%5D=Julio&mes_nombres%5B%5D=Agosto&mes_nombres%5B%5D=Septiembre&mes_nombres%5B%5D=Octubre&mes_nombres%5B%5D=Noviembre&mes_nombres%5B%5D=Diciembre",
+                    "&comuna%5B%5D=", comuna_numero,
+                    "&familia%5B%5D=1&familia%5B%5D=2&familia%5B%5D=3&familia%5B%5D=4&familia%5B%5D=5&familia%5B%5D=99&familia_nombres%5B%5D=Delitos+violentos&familia_nombres%5B%5D=Delitos+asociados+a+drogas&familia_nombres%5B%5D=Delitos+asociados+a+armas&familia_nombres%5B%5D=Delitos+contra+la+propiedad+no+violentos&familia_nombres%5B%5D=Incivilidades&familia_nombres%5B%5D=Otros+delitos+o+faltas&grupo%5B%5D=101&grupo%5B%5D=102&grupo%5B%5D=103&grupo%5B%5D=104&grupo%5B%5D=105&grupo%5B%5D=106&grupo%5B%5D=107&grupo%5B%5D=108&grupo%5B%5D=109&grupo%5B%5D=110&grupo%5B%5D=201&grupo%5B%5D=301&grupo%5B%5D=302&grupo%5B%5D=401&grupo%5B%5D=402&grupo%5B%5D=403&grupo%5B%5D=404&grupo%5B%5D=405&grupo%5B%5D=501&grupo%5B%5D=502&grupo%5B%5D=503&grupo%5B%5D=504&grupo%5B%5D=999&grupo_nombres%5B%5D=Homicidios+y+femicidios&grupo_nombres%5B%5D=Violaciones+y+delitos+sexuales&grupo_nombres%5B%5D=Robos+con+violencia+o+intimidaci%C3%B3n&grupo_nombres%5B%5D=Robo+por+sorpresa&grupo_nombres%5B%5D=Lesiones+graves+o+grav%C3%ADsimas&grupo_nombres%5B%5D=Lesiones+menos+graves&grupo_nombres%5B%5D=Lesiones+leves&grupo_nombres%5B%5D=Violencia+intrafamiliar&grupo_nombres%5B%5D=Amenazas+con+armas&grupo_nombres%5B%5D=Amenazas+o+ri%C3%B1a&grupo_nombres%5B%5D=Cr%C3%ADmenes+y+simples+delitos+ley+de+drogas&grupo_nombres%5B%5D=Cr%C3%ADmenes+y+simples+delitos+ley+de+armas&grupo_nombres%5B%5D=Porte+de+arma+cortante+o+punzante&grupo_nombres%5B%5D=Robos+en+lugares+habitados+y+no+habitados&grupo_nombres%5B%5D=Robos+en+veh%C3%ADculos+y+sus+accesorios&grupo_nombres%5B%5D=Otros+robos+con+fuerza+en+las+cosas&grupo_nombres%5B%5D=Hurtos&grupo_nombres%5B%5D=Receptaci%C3%B3n&grupo_nombres%5B%5D=Consumo+de+alcohol+y+drogas+en+la+v%C3%ADa+p%C3%BAblica&grupo_nombres%5B%5D=Da%C3%B1os&grupo_nombres%5B%5D=Des%C3%B3rdenes+p%C3%BAblicos&grupo_nombres%5B%5D=Otras+incivilidades&grupo_nombres%5B%5D=Otros+delitos+o+faltas&subgrupo%5B%5D=10101&subgrupo%5B%5D=10102&subgrupo%5B%5D=10103&subgrupo%5B%5D=10104&subgrupo%5B%5D=10105&subgrupo%5B%5D=10106&subgrupo%5B%5D=10107&subgrupo%5B%5D=10201&subgrupo%5B%5D=10202&subgrupo%5B%5D=10203&subgrupo%5B%5D=10204&subgrupo%5B%5D=10205&subgrupo%5B%5D=10301&subgrupo%5B%5D=10302&subgrupo%5B%5D=10401&subgrupo%5B%5D=10501&subgrupo%5B%5D=10601&subgrupo%5B%5D=10701&subgrupo%5B%5D=10801&subgrupo%5B%5D=10802&subgrupo%5B%5D=10803&subgrupo%5B%5D=10804&subgrupo%5B%5D=10805&subgrupo%5B%5D=10901&subgrupo%5B%5D=11001&subgrupo%5B%5D=20101&subgrupo%5B%5D=20102&subgrupo%5B%5D=20103&subgrupo%5B%5D=20104&subgrupo%5B%5D=30101&subgrupo%5B%5D=30102&subgrupo%5B%5D=30103&subgrupo%5B%5D=30201&subgrupo%5B%5D=40101&subgrupo%5B%5D=40102&subgrupo%5B%5D=40201&subgrupo%5B%5D=40202&subgrupo%5B%5D=40301&subgrupo%5B%5D=40401&subgrupo%5B%5D=40501&subgrupo%5B%5D=50101&subgrupo%5B%5D=50201&subgrupo%5B%5D=50301&subgrupo%5B%5D=50401&subgrupo%5B%5D=50402&subgrupo%5B%5D=50403&subgrupo%5B%5D=50404&subgrupo%5B%5D=99901&subgrupo%5B%5D=99902&subgrupo%5B%5D=99903&subgrupo_nombres%5B%5D=Femicidio&subgrupo_nombres%5B%5D=Femicidio+no+%C3%ADntimo&subgrupo_nombres%5B%5D=Suicidio+femicida&subgrupo_nombres%5B%5D=Violaci%C3%B3n+con+homicidio&subgrupo_nombres%5B%5D=Robo+con+homicidio&subgrupo_nombres%5B%5D=Auxilio+al+suicidio&subgrupo_nombres%5B%5D=Otros+homicidios&subgrupo_nombres%5B%5D=Tortura+o+apremios+ileg%C3%ADtimos+con+violaci%C3%B3n&subgrupo_nombres%5B%5D=Robo+con+violaci%C3%B3n&subgrupo_nombres%5B%5D=Otras+violaciones&subgrupo_nombres%5B%5D=Abusos+sexuales&subgrupo_nombres%5B%5D=Otros+delitos+sexuales&subgrupo_nombres%5B%5D=Robos+con+violencia+o+intimidaci%C3%B3n&subgrupo_nombres%5B%5D=Robo+violento+de+veh%C3%ADculo+motorizado&subgrupo_nombres%5B%5D=Robo+por+sorpresa&subgrupo_nombres%5B%5D=Lesiones+graves+o+grav%C3%ADsimas&subgrupo_nombres%5B%5D=Lesiones+menos+graves&subgrupo_nombres%5B%5D=Lesiones+leves&subgrupo_nombres%5B%5D=Violencia+intrafamiliar+a+mujer&subgrupo_nombres%5B%5D=Violencia+intrafamiliar+a+ni%C3%B1o+o+ni%C3%B1a&subgrupo_nombres%5B%5D=Violencia+intrafamiliar+a+adulto+mayor&subgrupo_nombres%5B%5D=Violencia+intrafamiliar+a+hombre&subgrupo_nombres%5B%5D=Violencia+intrafamiliar+no+clasificada&subgrupo_nombres%5B%5D=Amenazas+con+armas&subgrupo_nombres%5B%5D=Amenazas+o+ri%C3%B1a&subgrupo_nombres%5B%5D=Tr%C3%A1fico+de+sustancias&subgrupo_nombres%5B%5D=Microtr%C3%A1fico+de+sustancias&subgrupo_nombres%5B%5D=Elaboraci%C3%B3n+o+producci%C3%B3n+de+sustancias&subgrupo_nombres%5B%5D=Otras+infracciones+a+la+ley+de+drogas&subgrupo_nombres%5B%5D=Disparo+injustificado&subgrupo_nombres%5B%5D=Porte+%2F+posesi%C3%B3n+de+armas+o+explosivos&subgrupo_nombres%5B%5D=Otras+infracciones+a+la+ley+de+armas&subgrupo_nombres%5B%5D=Porte+de+arma+cortante+o+punzante&subgrupo_nombres%5B%5D=Robo+en+lugar+habitado&subgrupo_nombres%5B%5D=Robos+en+lugar+no+habitado&subgrupo_nombres%5B%5D=Robo+de+veh%C3%ADculo+motorizado&subgrupo_nombres%5B%5D=Robo+de+objetos+de+o+desde+veh%C3%ADculo&subgrupo_nombres%5B%5D=Otros+robos+con+fuerza+en+las+cosas&subgrupo_nombres%5B%5D=Hurtos&subgrupo_nombres%5B%5D=Receptaci%C3%B3n&subgrupo_nombres%5B%5D=Consumo+de+alcohol+y+drogas+en+la+v%C3%ADa+p%C3%BAblica&subgrupo_nombres%5B%5D=Da%C3%B1os&subgrupo_nombres%5B%5D=Des%C3%B3rdenes+p%C3%BAblicos&subgrupo_nombres%5B%5D=Animales+sueltos+en+la+v%C3%ADa+p%C3%BAblica&subgrupo_nombres%5B%5D=Comercio+ilegal&subgrupo_nombres%5B%5D=Ofensas+al+pudor&subgrupo_nombres%5B%5D=Otras+incivilidades&subgrupo_nombres%5B%5D=Abigeato&subgrupo_nombres%5B%5D=Robo+frustrado&subgrupo_nombres%5B%5D=Otros+delitos+o+faltas&seleccion=2&descarga=false"
   )
   return(request)
 }
@@ -80,6 +58,50 @@ cead_limpiar <- function(data, .comuna, .año) {
 }
 
 
+
+
+
+
+cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
+  
+  datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
+    message("inciando comuna ", comuna)
+    # comuna = 1101 #comunas_por_calcular[100]
+    
+    # por cada año especificado
+    data <- map(años_elegidos |> set_names(), \(año) {
+      # año = 2023
+      message("año ", año)
+      
+      # generar request
+      xml.request = cead_generar_request(año_elegido = año, 
+                                         comuna)
+      
+      # obtener datos
+      inicio = Sys.time()
+      
+      data = tryCatch(cead_realizar_request(xml.request), 
+                      error = function(e) {
+                        message("error:", e)
+                        return(NULL)
+                      })
+      
+      final = Sys.time()
+      
+      Sys.sleep((final-inicio)*2) #espera para no saturar al servidor
+      
+      if (nchar(data) < 30000) message("(!) tabla sin suficiente información")
+      
+      return(data)
+    })
+    return(data)
+  })
+  return(datos_cead)
+}
+
+
+# recibe el dato crudo que retorna cada request al cead, y lo transforma en una tabla tibble
+# se usa dentro de cead_limpiar_resultados()
 cead_obtener_tabla <- function(data) {
   
   if (is.null(data)) {
@@ -96,41 +118,9 @@ cead_obtener_tabla <- function(data) {
 }
 
 
-
-cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
-  datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
-    message("inciando comuna ", comuna)
-    # comuna = 1101 #comunas_por_calcular[100]
-    
-    # por cada año especificado
-    data <- map(años_elegidos |> set_names(), \(año) {
-      # año = 2024
-      message("año ", año)
-      
-      # generar request
-      xml.request = cead_generar_request(año_elegido = año, 
-                                         comuna, 
-                                         delitos = "todos") #definidos en la función, se sacan del request
-      
-      # obtener datos
-      inicio = Sys.time()
-      data = tryCatch(cead_realizar_request(xml.request), 
-                      error = function(e) {
-                        message("error:", e)
-                        return(NULL)
-                      })
-      final = Sys.time()
-      
-      Sys.sleep((final-inicio)*1.5)
-      return(data)
-    })
-    return(data)
-  })
-  return(datos_cead)
-}
-
-
+# itera sobre el objeto datos_cead, retornado por cead_descargar_datos(), que es el resultado del scraping, para convertir los datos crudos en tablas, y retornar todos los datos de comunas y años en una sola tabla 
 cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
+  
   cead_limpiada <- map_df(comunas_por_calcular |> as.character(), \(.comuna) {
     message("obteniendo ", .comuna)
     # .comuna <- comunas_por_calcular[56] |> as.character()
@@ -145,14 +135,10 @@ cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
       #.año <- "2024"
       
       # data |> cead_obtener_tabla()
+      
       #extraer los datos desde la comuna
       cead_comuna_año <- cead_comuna |> 
         pluck(.año) |>
-        # rvest::read_html() |> 
-        # rvest::html_table() |> 
-        # purrr::pluck(1) |> 
-        # janitor::row_to_names(2) |> 
-        # rename(delitos = 1)
         cead_obtener_tabla()
       
       if (nrow(cead_comuna_año) == 0) {
