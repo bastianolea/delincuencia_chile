@@ -13,46 +13,23 @@ source("funciones_delincuencia.R")
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
+
 # años_elegidos = 2010:2023
-años_elegidos = 2010:2024
+# años_elegidos = 2010:2024
+años_elegidos = 2024
 
 # scraping por api ----
 # ejecuta la obtención de datos, por comuna y por año, haciendo requests al sitio de cead
 
 # por cada comuna
-datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
-  message("inciando comuna ", comuna)
-  
-  # por cada año especificado
-  data <- map(años_elegidos |> set_names(), \(año) {
-    message("año ", año)
-    
-    # generar request
-    xml.request = cead_generar_request(año_elegido = año, 
-                                       comuna, 
-                                       delitos = "todos") #definidos en la función, se sacan del request
-    
-    # obtener datos
-    inicio = Sys.time()
-    data = tryCatch(cead_realizar_request(xml.request), 
-                    error = function(e) {
-                      message("error:", e)
-                      return(NULL)
-                    })
-    final = Sys.time()
-    
-    Sys.sleep((final-inicio)*1.5)
-    return(data)
-  })
-  return(data)
-})
-
+datos_cead <- cead_descargar_datos(años_elegidos, comunas_por_calcular)
 
 # guardar información cruda
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo.rds", compress = "gz")
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023.rds", compress = "gz")
 # readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_2023_2024.rds", compress = "gz")
-readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2010_2024.rds", compress = "gz")
+# readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2010_2024.rds", compress = "gz")
+readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2024_3.rds", compress = "gz")
 # datos_cead <- readr::read_rds("datos/cead_delincuencia_crudo_todos_2010_2024.rds")
 
 #—----
@@ -63,46 +40,11 @@ readr::write_rds(datos_cead, "datos/cead_delincuencia_crudo_todos_2010_2024.rds"
 
 
 # limpieza ----
+# datos_cead_2020_2024 <- readr::read_rds("datos/cead_delincuencia_crudo_todos_2010_2024.rds")
+# datos_cead_2024_3 <- readr::read_rds("datos/cead_delincuencia_crudo_todos_2024_3.rds")
 
 #por cada comuna
-cead_limpiada <- map_df(comunas_por_calcular |> as.character(), \(.comuna) {
-  message("obteniendo ", .comuna)
-  # .comuna <- comunas_por_calcular[2] |> as.character()
-  
-  #extraer la comuna desde los datos names(cead)
-  cead_comuna <- datos_cead |> 
-    pluck(.comuna)
-  
-  #por cada año
-  datos_comuna_año <- map(names(cead_comuna), \(.año) {
-    message("obteniendo año ", .año)
-    #.año <- "2024"
-    
-    #extraer los datos desde la comuna
-    cead_comuna_año <- cead_comuna |> 
-      pluck(.año) |>
-      # rvest::read_html() |> 
-      # rvest::html_table() |> 
-      # purrr::pluck(1) |> 
-      # janitor::row_to_names(2) |> 
-      # rename(delitos = 1)
-      cead_obtener_tabla()
-    
-    if (nrow(cead_comuna_año) == 0) {
-      message("sin datos para comuna ", .comuna, " en año ", .año)
-      return(NULL)
-    }
-    
-    #pivotar y agregar datos de caracterización
-    cead_datos <- cead_comuna_año |> 
-      tidyr::pivot_longer(cols = 2:length(cead_comuna_año), names_to = "mes", values_to = "cifra") |> 
-      mutate(año = .año,
-             cut_comuna = .comuna)
-    
-    return(cead_datos)
-  })
-  return(datos_comuna_año)
-})
+cead_limpiada <- cead_limpiar_resultados(datos_cead, comunas_por_calcular)
 
 # cead_limpiada <- bind_rows(cead_limpiada, cead_limpiada2)
 
