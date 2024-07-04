@@ -7,7 +7,7 @@ library(forcats)
 library(tidyr)
 
 #cargar datos ----
-delincuencia <- arrow::read_parquet("app/cead_delincuencia.parquet") |> 
+delincuencia <- arrow::read_parquet("datos_procesados/cead_delincuencia_chile.parquet") |> 
   rename(delitos = delito_n)
 
 delincuencia |> count(delito)
@@ -206,3 +206,109 @@ datos |>
 
 
 
+# delitos país por fecha ----
+delincuencia_pais_total <- delincuencia |> 
+  summarize(delitos = sum(delitos), .by = c(fecha))
+
+delincuencia_pais_total |> 
+  ggplot(aes(fecha, delitos)) +
+  geom_line()
+
+
+# delincuencia país por delito ----
+delincuencia_pais <- delincuencia |> 
+  mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos")) |> 
+  summarize(delitos = sum(delitos), .by = c(fecha, delito)) |> 
+  arrange(delito, fecha) |> 
+  group_by(delito) |>
+  mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3))
+
+bench::mark(check = FALSE,
+            delincuencia |> 
+              mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos")) |> 
+              summarize(delitos = sum(delitos), .by = c(fecha, delito)) |> 
+              arrange(delito, fecha) |> 
+              group_by(delito) |>
+              mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3)),
+  delincuencia |>
+    summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+    mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos")) |>
+    summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+    arrange(delito, fecha) |>
+    group_by(delito) |>
+    mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3)),
+  delincuencia |>
+    summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+    mutate(delito = str_wrap(delito, 20)) |> 
+    mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos")) |>
+    summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+    arrange(delito, fecha) |>
+    group_by(delito) |>
+    mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3)),
+delincuencia |>
+  summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+  mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos")) |>
+  summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+  mutate(delito = str_wrap(delito, 20)) |> 
+  arrange(delito, fecha) |>
+  group_by(delito) |>
+  mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3)),
+)
+
+
+delincuencia_pais |> 
+  filter(delito != "Otros delitos") |> 
+  ggplot(aes(fecha, delitos, color = delito)) +
+  geom_line()
+
+
+# delincuencia país solo connotación social ----
+unique(delincuencia$delito) |> sort()
+
+delitos_de_mayor_connotacion_social <- c("Robos con violencia o intimidación",
+                                         "Robo por sorpresa", "Robo en lugar habitado", "Robo en lugar no habitado", "Robo de vehículo motorizado",
+                                         "Robo de accesorios de o desde vehículo", "Otros robos con fuerza en las cosas", "Hurtos", "Lesiones graves o gravísimas",
+                                         "Lesiones leves", "Lesiones menos graves", "Homicidios", "Femicidio",
+                                         "Femicidio no íntimo", "Violación con homicidio", "Otras violaciones", "Tortura o apremios ilegítimos con violación")
+
+
+delincuencia_pais_tipo_connotacion <- delincuencia |> 
+  filter(delito %in% delitos_de_mayor_connotacion_social) |> 
+  mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos de connotación social")) |> 
+  summarize(delitos = sum(delitos), .by = c(fecha, delito)) |> 
+  arrange(delito, fecha) |> 
+  group_by(delito) |>
+  mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3))
+
+delincuencia_pais_tipo_connotacion |> 
+  ggplot(aes(fecha, delitos, color = delito)) +
+  geom_line()
+
+
+
+
+# variación de delitos por connotación social ----
+delincuencia_pais_tipo <- delincuencia |> 
+  mutate(tipo = case_when(delito %in% delitos_de_mayor_connotacion_social ~ "Delitos de mayor connotación social",
+                          .default = "Otros delitos")) |> 
+  summarize(delitos = sum(delitos), .by = c(fecha, tipo))
+
+delincuencia_pais_tipo |> 
+  arrange(tipo, fecha) |> 
+  # group_by(tipo) |>
+  # mutate(delitos = slider::slide_dbl(delitos, mean, .before = 2)) |>
+  group_by(tipo) |> 
+  mutate(cambio = delitos/lag(delitos)-1,
+         direccion = ifelse(cambio > 0, "Aumento", "Disminución")) |> 
+  filter(fecha >= "2022-01-01") |> 
+  ggplot(aes(fecha, cambio, fill = direccion, col = direccion)) +
+  geom_col() +
+  geom_text(data = ~filter(.x, direccion == "Aumento"),
+            aes(label = scales::percent(cambio, accuracy = 0.1)),
+            nudge_y = 0.03, vjust = 0, size = 3) +
+  geom_text(data = ~filter(.x, direccion == "Disminución"),
+            aes(label = scales::percent(cambio, accuracy = 0.1)),
+            nudge_y = -0.03, vjust = 1, size = 3) +
+  scale_y_continuous(limits = c(-1, 1)) +
+  facet_wrap(~tipo, ncol = 1, axes = "all_x") +
+  theme(legend.position = "none")

@@ -31,6 +31,7 @@ delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |>
 
 datos_año_min = min(year(delincuencia$fecha))
 datos_año_max = max(year(delincuencia$fecha))
+datos_fecha_max = max(delincuencia$fecha)
 datos_ultimo_año_completo = 2023
 
 delitos_graves <- c("Hurtos", "Robos con violencia o intimidación", "Robo en lugar habitado",
@@ -40,6 +41,12 @@ delitos_graves <- c("Hurtos", "Robos con violencia o intimidación", "Robo en lu
                     "Robo frustrado",
                     "Homicidios",
                     "Violencia intrafamiliar a mujer")
+
+delitos_de_mayor_connotacion_social <- c("Robos con violencia o intimidación",
+                                         "Robo por sorpresa", "Robo en lugar habitado", "Robo en lugar no habitado", "Robo de vehículo motorizado",
+                                         "Robo de accesorios de o desde vehículo", "Otros robos con fuerza en las cosas", "Hurtos", "Lesiones graves o gravísimas",
+                                         "Lesiones leves", "Lesiones menos graves", "Homicidios", "Femicidio",
+                                         "Femicidio no íntimo", "Violación con homicidio", "Otras violaciones", "Tortura o apremios ilegítimos con violación")
 
 lista_delitos <- as.character(unique(delincuencia$delito)) |> sort()
 
@@ -249,7 +256,19 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
       color: {{color_texto}} !important;
       border: none;
   }"),
-                
+                #estilo tabset panel
+                tags$style(HTML(paste0("
+    .tabbable > .nav > li > a {
+    background-color: ", color_detalle, "; color: ", color_texto, ";
+    padding: 8px;
+    margin: 3px;
+    }
+    .tabbable > .nav > li > a:hover, .tabbable > .nav > li[class=active] > a:hover {
+    background-color: ", color_enlaces, ";
+    }
+    .tabbable > .nav > li[class=active] > a {
+    background-color: ", color_secundario, "; color: ", color_texto, ";}
+  "))),
                 
                 #—----
                 
@@ -269,9 +288,86 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
              otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político."
                          ),
                          
+                         div(
+                           p("Datos más recientes disponibles:", textOutput("max_fecha_datos_base", inline = T), 
+                             "obtenidos el", textOutput("max_fecha_datos_archivo", inline = T),
+                             style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}")
+                           )
+                         ),
+                         
                          hr()
                   )
                 ),
+                
+                
+                # gráficos nacionales ----
+                fluidRow(
+                  column(6, style = "margin-top: -30px; margin-bottom: 20px;",
+                         h2("Resumen de delitos a nivel nacional"),
+                         ## gráfico delitos nacionales ----
+                         tabsetPanel(type = "pills", 
+                                     tabPanel("Total de delitos",
+                                              div(style = "margin-top:8px; margin-bottom: 8px;",
+                                                  plotOutput("grafico_pais_delito_1", width = "100%", height = 340) |>
+                                                    withSpinner(color = color_secundario, type = 8)
+                                              )
+                                     ),
+                                     
+                                     tabPanel("Delitos desagregados",
+                                              div(style = "margin-top:8px; margin-bottom: 8px;",
+                                                  plotOutput("grafico_pais_delito_2", width = "100%", height = 450) |>
+                                                    withSpinner(color = color_secundario, type = 8)
+                                              )
+                                     ),
+                                     
+                                     tabPanel("Delitos de mayor connotación social",
+                                              div(style = "margin-top:8px; margin-bottom: 8px;",
+                                                  plotOutput("grafico_pais_delito_3", width = "100%", height = 450) |>
+                                                    withSpinner(color = color_secundario, type = 8)
+                                              )
+                                     ),
+                                     
+                                     tabPanel("Delitos de homicidio",
+                                              div(style = "margin-top:8px; margin-bottom: 8px;",
+                                                  plotOutput("grafico_pais_delito_4", width = "100%", height = 450) |>
+                                                    withSpinner(color = color_secundario, type = 8)
+                                              )
+                                     ),
+                                     
+                                     tabPanel("Violencia de género",
+                                              div(style = "margin-top:8px; margin-bottom: 8px;",
+                                                  plotOutput("grafico_pais_delito_5", width = "100%", height = 450) |>
+                                                    withSpinner(color = color_secundario, type = 8)
+                                              )
+                                     )
+                         )
+                  ),
+                  column(6, style = "margin-top: -30px; margin-bottom: 20px;",
+                         ## gráfico variación ----
+                         h2("Variación mensual de delitos totales a nivel nacional"),
+                         
+                         div(style = "max-width: 460px;",
+                             sliderInput(
+                               inputId = "año_variacion",
+                               label = NULL,
+                               min = datos_año_min,
+                               max = datos_año_max,
+                               value = c(datos_año_max-2, datos_año_max), 
+                               sep = "", width = "100%"
+                             )
+                         ),
+                         
+                         plotOutput("grafico_pais_variacion", width = "100%", height = 380) |> 
+                           withSpinner(color = color_secundario, type = 8)
+                         
+                         
+                  ),
+                  
+                  column(12,
+                         hr(),
+                  )
+                ),
+                
                 
                 #selectores ----
                 fluidRow(
@@ -309,13 +405,13 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                            )
                          ),
                          
-                         div(style = "margin-top: 24px; margin-bottom: 12px;",
+                         div(style = "margin-top: 24px; margin-bottom: 24px;",
                              actionButton("mostrar_opciones", label = "Mostrar/ocultar opciones", 
                                           size = "xs",
                                           style = glue("margin: auto; height: 28px; 
-                        font-size: 84%; padding-top: 5px; 
-                        background-color: {color_detalle};
-                        color: {color_enlaces};")
+                         font-size: 84%; padding-top: 5px; 
+                         background-color: {color_detalle};
+                         color: {color_enlaces};")
                              )
                          ),
                          
@@ -349,10 +445,14 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                          
                   ),
                   
+                  
+                  
                   #grafico líneas----
                   column(8,
+                         div(style = "margin-top: -30px;",
                          h2(textOutput("titulo_grafico_lineas")),
-                         p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo."),
+                         p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo.")
+                         ),
                          
                          pickerInput("delitos",
                                      label = h4("Delitos"),
@@ -403,10 +503,10 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                   column(12,
                          h2(textOutput("titulo_grafico_comparativo")),
                          markdown("Selecciona dos años para comparar las **tasas de delitos** en la comuna seleccionada. 
-             Esta medida permite analizar si los delitos aumentaron o disminuyeron entre ambas fechas. 
-             Al utilizar la tasa de delitos; es decir, la cantidad de delitos reportados por cada 1.000 habitantes,
-             es posible comparar delitos entre distintas fechas al considerar en el cálculo los cambios en la población de la comuna (es decir, si en una comuna los delitos se mantienen entre dos años, pero la población disminuye, entonces los delitos _bajan)_.
-             Los datos de población se obtienen desde las [proyecciones de población del INE.](https://bastianoleah.shinyapps.io/censo_proyecciones/)"),
+                         Esta medida permite analizar si los delitos aumentaron o disminuyeron entre ambas fechas. 
+                         Al utilizar la tasa de delitos; es decir, la cantidad de delitos reportados por cada 1.000 habitantes,
+                         es posible comparar delitos entre distintas fechas al considerar en el cálculo los cambios en la población de la comuna (es decir, si en una comuna los delitos se mantienen entre dos años, pero la población disminuye, entonces los delitos _bajan)_.
+                         Los datos de población se obtienen desde las [proyecciones de población del INE.](https://bastianoleah.shinyapps.io/censo_proyecciones/)"),
                          div(style = "opacity: 0.6; font-size: 80%;",
                              markdown("La idea de este gráfico fue originalmente concebida por [Ernesto Laval](https://x.com/elaval/status/1768858137979740248?s=20), quien la implementó en [su propio visualizador de datos.](https://observablehq.com/@elaval/comparacion-tasa-de-delitos)")
                          ),
@@ -443,7 +543,6 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 # tabla ----
                 fluidRow(
                   column(12, style = "margin-top: 30px;",
-                         # h2("Datos de delincuencia"),
                          h2(textOutput("titulo_tabla")),
                          p("En esta tabla se disponen todos los datos de delitos correspondientes a la comuna o región seleccionada. A continuación, selecicone un año y especifique los delitos a considerar para visualizar los datos en la tabla."),
                          
@@ -507,6 +606,21 @@ server <- function(input, output, session) {
   
   updatePickerInput(session, "comuna",
                     options = list(width = FALSE, noneSelectedText = "Sin selección"))
+  
+  
+  output$max_fecha_datos_base <- renderText({
+    fecha <- datos_fecha_max
+    fecha2 <- fecha + months(1) - days(1)
+    fecha_formateada <- paste0(format(fecha2, "%d/%m/%Y"), ",")
+    return(fecha_formateada)
+  })
+  
+  output$max_fecha_datos_archivo <- renderText({
+    fecha <- file.info("cead_delincuencia.parquet")$mtime
+    fecha2 <- fecha + months(1) - days(1)
+    fecha_formateada <- format(fecha2, "%d/%m/%Y")
+    return(fecha_formateada)
+  })
   
   #selectores ----
   
@@ -790,6 +904,363 @@ server <- function(input, output, session) {
   })
   
   # gráficos ----
+  
+  
+  ## nacionales ----
+  
+  ### gráfico delitos ----
+  
+  #### delitos país por fecha ----
+  output$grafico_pais_delito_1 <- renderPlot({
+    
+    delincuencia_pais_total <- delincuencia |>
+      summarize(delitos = sum(delitos), .by = c(fecha))
+    
+    delincuencia_pais_total |>
+      ggplot(aes(fecha, delitos)) +
+      geom_line(linewidth = 1, color = color_enlaces, lineend = "round", alpha = 0.8) +
+      scale_y_continuous(labels = ~scales::comma(.x, big.mark = ".")) +
+      scale_x_date(expand = expansion(0)) +
+      #escalas
+      scale_x_date(expand = c(0, 0), oob = scales::squish, 
+                   date_breaks = "years", date_labels = "%Y") +
+      scale_y_continuous(expand = expansion(c(0, 0.01)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
+      scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
+      guides(color = guide_legend(position = "bottom", nrow = 2)) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            panel.grid.major.x = element_line(color = color_detalle, linetype = "dashed"),
+            axis.ticks = element_blank(),
+            axis.ticks.x = element_line(colour = color_detalle),
+            axis.ticks.length.x = unit(-0.25, "cm"),
+            plot.title = element_text(face = "bold"),
+            plot.title.position = "plot",
+            axis.title.x = element_blank(),
+            axis.title = element_text(color = color_secundario),
+            axis.text.x = element_text(margin = margin(t = 5))
+      ) +
+      # fondo
+      theme(panel.background = element_rect(fill = color_fondo, color = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      coord_cartesian(clip = "off") +
+      labs(y = "Delitos totales denunciados en Chile",
+           title = "Cantidad total de delitos denunciados en el país")
+  }, res = 95)
+  
+  
+  
+  #### delincuencia país por delito ----
+  delincuencia_pais <- reactive({
+    delincuencia |>
+      summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+      mutate(delito = fct_lump_n(delito, w = delitos, n = 6, other_level = "Otros delitos")) |>
+      summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+      mutate(delito = str_wrap(delito, 20)) |> 
+      arrange(delito, fecha) |>
+      group_by(delito) |>
+      mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3))
+  })
+  
+  output$grafico_pais_delito_2 <- renderPlot({
+    delincuencia_pais() |>
+      filter(delito != "Otros delitos") |>
+      ggplot(aes(fecha, delitos, color = delito)) +
+      geom_line(linewidth = 1, lineend = "round", alpha = 0.8) +
+      #escalas
+      scale_x_date(limits = c(min(datos()$fecha), max(datos()$fecha)),
+                   expand = c(0, 0), oob = scales::squish, 
+                   date_breaks = "years", date_labels = "%Y") +
+      scale_y_continuous(expand = expansion(c(0, 0.01)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
+      scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
+      guides(color = guide_legend(position = "bottom", nrow = 2)) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            panel.grid.major.x = element_line(color = color_detalle, linetype = "dashed"),
+            axis.ticks = element_blank(),
+            axis.ticks.x = element_line(colour = color_detalle),
+            axis.ticks.length.x = unit(-0.25, "cm"),
+            plot.title = element_text(face = "bold"),
+            plot.title.position = "plot",
+            axis.title.x = element_blank(),
+            axis.title = element_text(color = color_secundario),
+            axis.text.x = element_text(margin = margin(t = 5))
+      ) +
+      theme(legend.title = element_blank(), 
+            legend.key = element_rect(fill = color_fondo, linewidth = 0),
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(l= 3, r = 6))) +
+      # fondo
+      theme(panel.background = element_rect(fill = color_fondo, color = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      coord_cartesian(clip = "off") +
+      labs(y = "Cantidad de delitos denunciados",
+           title = "Delitos denunciados a nivel nacional",
+           subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses")
+  }, res = 95)
+  
+  
+  
+  #### delincuencia país solo connotación social ----
+  delincuencia_pais_tipo_connotacion <- reactive({
+    delincuencia |>
+      filter(delito %in% delitos_de_mayor_connotacion_social) |>
+      mutate(delito = fct_lump_n(delito, w = delitos, n = 7, other_level = "Otros delitos de\nmayor connotación social")) |>
+      summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+      mutate(delito = str_wrap(delito, 20)) |> 
+      arrange(delito, fecha) |>
+      group_by(delito) |>
+      mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3))
+  })
+  
+  output$grafico_pais_delito_3 <- renderPlot({
+    delincuencia_pais_tipo_connotacion() |>
+      ggplot(aes(fecha, delitos, color = delito)) +
+      geom_line(linewidth = 1, lineend = "round", alpha = 0.8) +
+      #escalas
+      scale_x_date(limits = c(min(datos()$fecha), max(datos()$fecha)),
+                   expand = c(0, 0), oob = scales::squish, 
+                   date_breaks = "years", date_labels = "%Y") +
+      scale_y_continuous(expand = expansion(c(0, 0.01)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
+      scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
+      guides(color = guide_legend(position = "bottom", nrow = 3)) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            panel.grid.major.x = element_line(color = color_detalle, linetype = "dashed"),
+            axis.ticks = element_blank(),
+            axis.ticks.x = element_line(colour = color_detalle),
+            axis.ticks.length.x = unit(-0.25, "cm"),
+            plot.title = element_text(face = "bold"),
+            plot.title.position = "plot",
+            axis.title.x = element_blank(),
+            axis.title = element_text(color = color_secundario),
+            axis.text.x = element_text(margin = margin(t = 5))
+      ) +
+      theme(legend.title = element_blank(), 
+            legend.key = element_rect(fill = color_fondo, linewidth = 0),
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(l= 3, r = 6))) +
+      # fondo
+      theme(panel.background = element_rect(fill = color_fondo, color = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      coord_cartesian(clip = "off") +
+      labs(y = "Cantidad de delitos de\nmayor connotación social",
+           title = "Delitos de mayor connotación social\ndenunciados a nivel nacional", 
+           subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses,\nexcluyendo otros delitos")
+    
+  }, res = 95)
+  
+  
+  
+  #### delincuencia país solo homicidios ----
+  delincuencia_pais_tipo_homicidios <- reactive({
+    delincuencia |>
+      filter(delito %in% c("Homicidios", "Femicidio", "Femicidio no íntimo")) |>
+      summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
+      arrange(delito, fecha) |>
+      group_by(delito) |>
+      mutate(delitos = slider::slide_dbl(delitos, mean, .before = 3))
+  })
+  
+  output$grafico_pais_delito_4 <- renderPlot({
+    delincuencia_pais_tipo_homicidios() |>
+      ggplot(aes(fecha, delitos, color = delito)) +
+      geom_line(linewidth = 1, lineend = "round", alpha = 0.8) +
+      #escalas
+      scale_x_date(limits = c(min(datos()$fecha), max(datos()$fecha)),
+                   expand = c(0, 0), oob = scales::squish, 
+                   date_breaks = "years", date_labels = "%Y") +
+      scale_y_continuous(expand = expansion(c(0, 0.1)), labels = ~format(.x, big.mark = ".", decimal.mark = ",")) +
+      scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
+      guides(color = guide_legend(position = "bottom", nrow = 1)) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            panel.grid.major.x = element_line(color = color_detalle, linetype = "dashed"),
+            axis.ticks = element_blank(),
+            axis.ticks.x = element_line(colour = color_detalle),
+            axis.ticks.length.x = unit(-0.25, "cm"),
+            plot.title = element_text(face = "bold"),
+            plot.title.position = "plot",
+            axis.title.x = element_blank(),
+            axis.title = element_text(color = color_secundario),
+            axis.text.x = element_text(margin = margin(t = 5))
+      ) +
+      theme(legend.title = element_blank(), 
+            legend.key = element_rect(fill = color_fondo, linewidth = 0),
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(l= 3, r = 6))) +
+      # fondo
+      theme(panel.background = element_rect(fill = color_fondo, color = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      coord_cartesian(clip = "off") +
+      labs(y = "Cantidad de homicidios a nivel nacional",
+           title = "Delitos de homicidio y femicidio\ndenunciados a nivel nacional", 
+           subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses")
+  }, res = 95)
+  
+  
+  
+  
+  
+  #### delincuencia país género ----
+  delincuencia_pais_tipo_genero <- reactive({
+    delincuencia |>
+      filter(delito %in% c("Femicidio", "Abusos sexuales", "Otros delitos sexuales", "Otras violaciones", "Suicidio femicida", "Violencia intrafamiliar a mujer",
+                           "Femicidio no íntimo", "Violación con homicidio"
+                           )) |>
+      summarize(delitos = sum(delitos), .by = c(fecha, delito))
+  })
+  
+  output$grafico_pais_delito_5 <- renderPlot({
+    delincuencia_pais_tipo_genero() |>
+      ggplot(aes(fecha, delitos, color = delito)) +
+      geom_line(linewidth = 1, lineend = "round", alpha = 0.8) +
+      #escalas
+      scale_x_date(limits = c(min(datos()$fecha), max(datos()$fecha)),
+                   expand = c(0, 0), oob = scales::squish, 
+                   date_breaks = "years", date_labels = "%Y") +
+      scale_y_continuous(expand = expansion(c(0, 0.02)), 
+                         labels = ~format(.x, big.mark = ".", decimal.mark = ","),
+                         transform = "log", 
+                         breaks = c(10, 100, 1000, 10000)
+                         ) +
+      scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
+      coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
+      guides(color = guide_legend(position = "bottom", nrow = 3)) +
+      #temas
+      theme(text = element_text(color = color_texto),
+            rect = element_rect(fill = color_fondo),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_line(color = color_detalle),
+            panel.grid.major.x = element_line(color = color_detalle, linetype = "dashed"),
+            axis.ticks = element_blank(),
+            axis.ticks.x = element_line(colour = color_detalle),
+            axis.ticks.length.x = unit(-0.25, "cm"),
+            plot.title = element_text(face = "bold"),
+            plot.title.position = "plot",
+            axis.title.x = element_blank(),
+            axis.title = element_text(color = color_secundario),
+            axis.text.x = element_text(margin = margin(t = 5))
+      ) +
+      theme(legend.title = element_blank(), 
+            legend.key = element_rect(fill = color_fondo, linewidth = 0),
+            legend.text = element_text(color = color_texto, size = 10, margin = margin(l= 3, r = 6))) +
+      # fondo
+      theme(panel.background = element_rect(fill = color_fondo, color = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      coord_cartesian(clip = "off") +
+      labs(y = "Cantidad de delitos a nivel nacional\n(escala logarítmica)",
+           title = "Delitos sexuales y de género, a nivel nacional", 
+           subtitle = "Delitos por subgrupo delictual, escala logarítmica")
+  }, res = 95)
+  
+  
+  
+  ### gráfico variación ----
+  delincuencia_pais_tipo <- reactive({
+    delincuencia |> 
+      mutate(tipo = case_when(delito %in% delitos_de_mayor_connotacion_social ~ "Delitos de mayor connotación social",
+                              .default = "Otros delitos")) |> 
+      summarize(delitos = sum(delitos), .by = c(fecha, tipo)) |> 
+      arrange(tipo, fecha) |> 
+      # group_by(tipo) |>
+      # mutate(delitos = slider::slide_dbl(delitos, mean, .before = 2)) |>
+      group_by(tipo) |> 
+      mutate(cambio = delitos/lag(delitos)-1,
+             direccion = ifelse(cambio > 0, "Aumento", "Disminución")) |> 
+      filter(fecha >= as_date(paste0(input$año_variacion[1], "-01-01")),
+             fecha <= as_date(paste0(input$año_variacion[2], "-12-31"))
+      )
+  })
+  
+  
+  output$grafico_pais_variacion <- renderPlot({
+    
+    p <- delincuencia_pais_tipo() |> 
+      ggplot(aes(fecha, cambio, 
+                 fill = direccion, color = direccion)) +
+      geom_col(width = 10) +
+      geom_text(data = ~filter(.x, direccion == "Aumento"),
+                aes(label = scales::percent(cambio, accuracy = 0.1)),
+                nudge_y = 0.03, vjust = 0, size = 3, check_overlap = T) +
+      geom_text(data = ~filter(.x, direccion == "Disminución"),
+                aes(label = scales::percent(cambio, accuracy = 0.1)),
+                nudge_y = -0.03, vjust = 1, size = 3, check_overlap = T) +
+      scale_y_continuous(expand = expansion(c(0.1, 0.1)), breaks = c(-0.1, 0, 0.1)) +
+      geom_hline(yintercept = 0, color = color_secundario)
+    
+    # si se selecciona 1 año
+    if (input$año_variacion[2]-input$año_variacion[1] <= 1) {
+    p <- p +
+      scale_x_date(date_breaks = "months", date_labels = "%m", 
+                   minor_breaks = "months") +
+      theme(axis.text.x = element_text(margin = margin(t = 5)))
+    
+    # si se seleccionan 2 años
+    } else if (input$año_variacion[2]-input$año_variacion[1] == 2) {
+      p <- p +
+        scale_x_date(date_breaks = "3 months", date_labels = "%m/%y", 
+                     minor_breaks = "months") +
+        theme(axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5)))
+    } else {
+      p <- p +
+        scale_x_date(date_breaks = "years", date_labels = "%Y") +
+        theme(axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5)))
+    }
+      
+    
+    p <- p +
+      scale_fill_manual(values = c("Aumento" = color_negativo,
+                                   "Disminución" = color_positivo), 
+                        aesthetics = c("color", "fill")) +
+      facet_wrap(~tipo, ncol = 1, axes = "all_x") +
+      # theme_void() +
+      #temas
+      theme(text = element_text(color = color_texto),
+            axis.text = element_text(colour = color_texto),
+            panel.grid.minor.y = element_blank(),
+            panel.grid.minor.x = element_line(color = color_detalle),
+            panel.grid.major.x = element_line(color = color_detalle),
+            panel.grid.major.y = element_line(color = color_detalle),
+            # panel.grid.major.x = element_line(color = color_detalle, linetype = "dashed"),
+            axis.ticks = element_blank(),
+            axis.ticks.x = element_line(colour = color_detalle),
+            axis.ticks.length.x = unit(-0.25, "cm"),
+            # plot.title = element_text(face = "bold"),
+            # axis.title.x = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_text(color = color_secundario),
+            axis.text.y = element_blank(),
+            strip.text = element_text(face = "bold", colour = color_texto, size = 10),
+            strip.background = element_rect(fill = color_fondo)
+      ) +
+      theme(legend.position = "none") +
+      theme(panel.background = element_rect(fill = color_fondo, color = color_fondo), 
+            plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
+      labs(y = "Variación porcentual respecto a mes anterior")
+    
+    return(p)
+  }, res = 95)
+  
+  # comunales/regionales ----
+  
   ## gráfico líneas ----
   output$grafico <- renderPlot({
     req(length(input$comuna) == 1)
