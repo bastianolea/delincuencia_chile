@@ -1210,18 +1210,19 @@ server <- function(input, output, session) {
     if (input$año_variacion[2]-input$año_variacion[1] <= 1) {
     p <- p +
       scale_x_date(date_breaks = "months", date_labels = "%m", 
-                   minor_breaks = "months") +
+                   minor_breaks = "months", expand = expansion(0.02)) +
       theme(axis.text.x = element_text(margin = margin(t = 5)))
     
     # si se seleccionan 2 años
     } else if (input$año_variacion[2]-input$año_variacion[1] == 2) {
       p <- p +
         scale_x_date(date_breaks = "3 months", date_labels = "%m/%y", 
-                     minor_breaks = "months") +
+                     minor_breaks = "months", expand = expansion(0.02)) +
         theme(axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5)))
     } else {
       p <- p +
-        scale_x_date(date_breaks = "years", date_labels = "%Y") +
+        scale_x_date(date_breaks = "years", date_labels = "%Y",
+                     expand = expansion(0.02)) +
         theme(axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5)))
     }
       
