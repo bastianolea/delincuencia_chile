@@ -1175,6 +1175,7 @@ server <- function(input, output, session) {
   
   ### gráfico variación ----
   delincuencia_pais_tipo <- reactive({
+    # browser()
     delincuencia |> 
       mutate(tipo = case_when(delito %in% delitos_de_mayor_connotacion_social ~ "Delitos de mayor connotación social",
                               .default = "Otros delitos")) |> 
@@ -1183,7 +1184,7 @@ server <- function(input, output, session) {
       # group_by(tipo) |>
       # mutate(delitos = slider::slide_dbl(delitos, mean, .before = 2)) |>
       group_by(tipo) |> 
-      mutate(cambio = delitos/lag(delitos)-1,
+      mutate(cambio = (delitos/lag(delitos))-1,
              direccion = ifelse(cambio > 0, "Aumento", "Disminución")) |> 
       filter(fecha >= as_date(paste0(input$año_variacion[1], "-01-01")),
              fecha <= as_date(paste0(input$año_variacion[2], "-12-31"))
