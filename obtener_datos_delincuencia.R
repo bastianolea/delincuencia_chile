@@ -18,6 +18,7 @@ comunas_por_calcular <- cargar_comunas()$cut_comuna
 # años_elegidos = 2010:2023
 # años_elegidos = 2010:2024
 años_elegidos = 2018:2024
+# años_elegidos = 2024
 
 # scraping por api ----
 # ejecuta la obtención de datos, por comuna y por año, haciendo requests al sitio de cead

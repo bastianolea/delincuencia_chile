@@ -1,15 +1,15 @@
-library(shiny)
+library(shiny) |> suppressPackageStartupMessages()
 library(shinyWidgets)
 library(shinycssloaders)
-library(shinyjs)
+library(shinyjs) |> suppressPackageStartupMessages()
 library(fresh)
 
-library(arrow)
-library(dplyr)
+library(arrow) |> suppressPackageStartupMessages()
+library(dplyr) |> suppressPackageStartupMessages()
 library(ggplot2)
-library(gt)
+library(gt) |> suppressPackageStartupMessages()
 library(slider)
-library(lubridate)
+library(lubridate) |> suppressPackageStartupMessages()
 library(stringr)
 library(forcats)
 library(glue)
@@ -77,7 +77,8 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 
                 useShinyjs(),
                 use_googlefont("Open Sans"), #cargar fuente o tipo de letra
-                use_googlefont("Song Myung"),
+                # use_googlefont("Song Myung"),
+                use_googlefont("Crimson Text"),
                 
                 use_theme(create_theme(
                   theme = "default",
@@ -115,8 +116,11 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
   border-top: 3px solid {{color_detalle}} ;
   }"),
                 
-                css("h1, h2, h3 {
-      font-family: Song Myung;
+  #               css("h1, h2, h3 {
+  #     font-family: Song Myung;
+  # }"),
+  css("h1, h2, h3 {
+      font-family: Crimson Text;
   }"),
                 
                 css("h1 {

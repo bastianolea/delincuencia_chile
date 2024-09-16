@@ -134,6 +134,7 @@ cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
 
   require(purrr)
   require(furrr)
+  require(future)
   plan(multisession, workers = 4)
   
   cead_limpiada <- furrr::future_map(comunas_por_calcular |> as.character(), \(.comuna) {

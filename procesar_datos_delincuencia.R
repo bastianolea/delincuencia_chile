@@ -3,6 +3,7 @@ library(tidyr)
 library(ggplot2)
 library(readr)
 library(purrr)
+library(furrr)
 
 source("funciones_delincuencia.R")
 
