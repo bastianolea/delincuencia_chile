@@ -20,13 +20,6 @@ options(scipen = 9999)
 delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |> 
   rename(delitos = delito_n)
 
-# delincuencia |> 
-#   summarize(delitos = sum(delitos), .by = delito) |> 
-#   arrange(desc(delitos)) |> 
-#   slice(1:10) |> 
-#   pull(delito) |> 
-#   as.character() |> 
-#   dput()
 
 datos_año_min = min(year(delincuencia$fecha))
 datos_año_max = max(year(delincuencia$fecha))
@@ -54,6 +47,8 @@ periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv"
 
 censo <- arrow::read_parquet("censo_proyecciones_año.parquet")
 
+# opciones
+resolucion = 95
 
 # colores ----
 color_fondo = "#1f272b"
@@ -67,6 +62,12 @@ color_positivo = "#91b423"
 color_negativo = "#c03426"
 
 
+# tipografías ----
+# descargar tipografía local (descargada con gfonts)
+# gfonts::setup_font(id = "open-sans", output_dir = "app/www/") # instalar tipografía localmente
+# gfonts::setup_font(id = "crimson-text", output_dir = "app/www/")
+
+
 css <- function(text) {
   tags$style(glue(text, .open = "{{", .close = "}}"))
 }
@@ -75,9 +76,14 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 lang = "es",
                 
                 useShinyjs(),
-                use_googlefont("Open Sans"), #cargar fuente o tipo de letra
-                # use_googlefont("Song Myung"),
-                use_googlefont("Crimson Text"),
+                
+                # tipografías en vivo desde google fonts
+                # use_googlefont("Open Sans"), #cargar fuente o tipo de letra
+                # use_googlefont("Crimson Text"),
+                
+                # tipografías instaladas
+                gfonts::use_font("open-sans", "www/css/open-sans.css"),
+                gfonts::use_font("crimson-text", "www/css/crimson-text.css"),
                 
                 use_theme(create_theme(
                   theme = "default",
@@ -102,6 +108,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 
                 css("body {
       background-color: {{color_fondo}};
+      font-family: Open Sans;
   }"),
                 
                 css("p {
@@ -115,10 +122,10 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
   border-top: 3px solid {{color_detalle}} ;
   }"),
                 
-  #               css("h1, h2, h3 {
-  #     font-family: Song Myung;
-  # }"),
-  css("h1, h2, h3 {
+                #               css("h1, h2, h3 {
+                #     font-family: Song Myung;
+                # }"),
+                css("h1, h2, h3 {
       font-family: Crimson Text;
   }"),
                 
@@ -283,7 +290,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                              em("Bastián Olea Herrera")
                          ),
                          
-                         markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública."), 
+                         markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública. Los datos abarcan todas las comunas del país desde 2018 en adelante."), 
                          
                          markdown("Según el [CEAD](https://cead.spd.gov.cl/estadisticas-delictuales/), cada dato se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._"),
                          
@@ -374,7 +381,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 
                 #selectores ----
                 fluidRow(
-                  column(4,
+                  column(3,
                          
                          div(style = glue("margin-bottom: 12px; opacity: .8; color: {color_enlaces}"),
                              em("Seleccione una región, y opcionalmente una comuna, y luego seleccione si desea visualizar los datos a nivel regional o comunal. Por defecto se elige una comuna al azar."),
@@ -451,10 +458,10 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                   
                   
                   #grafico líneas----
-                  column(8,
+                  column(9,
                          div(style = "margin-top: -30px;",
-                         h2(textOutput("titulo_grafico_lineas")),
-                         p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo.")
+                             h2(textOutput("titulo_grafico_lineas")),
+                             p("En este gráfico se puede observar la ocurrencia mensual de delitos en la comuna o región elegidas. Puedes seleccionar los delitos en el selector que se presenta a continuación. En el fondo del gráfico se observan, como contexto, los periodos presidenciales, y el inicio y fin de la pandemia. Adicionalmente, líneas horizontales indican los promedios de delitos ocurridos durante el periodo presidencial anterior y el actual, como indicador general de la tendencia en materia de delincuencia del último tiempo.")
                          ),
                          
                          pickerInput("delitos",
@@ -589,7 +596,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                   column(12, style = "padding: 28px; font-size: 90%;",
                          hr(),
                          
-                         markdown("Desarrollado en R+Shiny por [Bastián Olea Herrera.](https://bastian.olea.biz)"),
+                         markdown("Desarrollado en R+Shiny por [Bastián Olea Herrera.](https://bastianolea.rbind.io)"),
                          
                          markdown("Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)"),
                          
@@ -597,7 +604,24 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                          
                          markdown("Código de fuente de esta app y del procesamiento de los datos [disponible en GitHub.](https://github.com/bastianolea/delincuencia_chile)"),
                          
-                         markdown("Los datos se obtuvieron desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial](https://bastianolea.github.io/tutorial_r_datos_delincuencia/)")
+                         markdown("Los datos se obtuvieron desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial](https://bastianolea.rbind.io/blog/tutorial_delitos_cead/)")
+                  )
+                ),
+                
+                # cafecito ----
+                fluidRow(
+                  column(12,
+                         div(
+                           style = "max-width: 380px; margin: auto; padding: 0px; margin-top: -18px;",
+                           
+                           tags$style(HTML(".cafecito:hover {opacity: 70%; transition: 0.3s; color: black !important;} .cafecito a:hover {color: black}")),
+                           
+                           div(class = "cafecito",
+                               style = paste("width: 100%; background-color: #FFDD04; transform:scale(0.6); border: 1.2px", color_detalle, "solid; border-radius: 13px;"),
+                               tags$body(HTML('<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="bastimapache" data-color="#FFDD00" data-emoji=""  data-font="Bree" data-text="Regálame un cafecito" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>'))
+                           )
+                         ),
+                         div(style = "height: 30px;")
                   )
                 )
                 
@@ -619,9 +643,10 @@ server <- function(input, output, session) {
   })
   
   output$max_fecha_datos_archivo <- renderText({
+    # browser()
     fecha <- file.info("cead_delincuencia.parquet")$mtime
-    fecha2 <- fecha + months(1) - days(1)
-    fecha_formateada <- format(fecha2, "%d/%m/%Y")
+    # fecha2 <- fecha + months(1) - days(1)
+    fecha_formateada <- format(fecha, "%d/%m/%Y")
     return(fecha_formateada)
   })
   
@@ -953,7 +978,7 @@ server <- function(input, output, session) {
       coord_cartesian(clip = "off") +
       labs(y = "Delitos totales denunciados en Chile",
            title = "Cantidad total de delitos denunciados en el país")
-  }, res = 95)
+  }, res = resolucion)
   
   
   
@@ -1008,7 +1033,7 @@ server <- function(input, output, session) {
       labs(y = "Cantidad de delitos denunciados",
            title = "Delitos denunciados a nivel nacional",
            subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses")
-  }, res = 95)
+  }, res = resolucion)
   
   
   
@@ -1063,7 +1088,7 @@ server <- function(input, output, session) {
            title = "Delitos de mayor connotación social\ndenunciados a nivel nacional", 
            subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses,\nexcluyendo otros delitos")
     
-  }, res = 95)
+  }, res = resolucion)
   
   
   
@@ -1115,7 +1140,7 @@ server <- function(input, output, session) {
       labs(y = "Cantidad de homicidios a nivel nacional",
            title = "Delitos de homicidio y femicidio\ndenunciados a nivel nacional", 
            subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses")
-  }, res = 95)
+  }, res = resolucion)
   
   
   
@@ -1126,7 +1151,7 @@ server <- function(input, output, session) {
     delincuencia |>
       filter(delito %in% c("Femicidio", "Abusos sexuales", "Otros delitos sexuales", "Otras violaciones", "Suicidio femicida", "Violencia intrafamiliar a mujer",
                            "Femicidio no íntimo", "Violación con homicidio"
-                           )) |>
+      )) |>
       summarize(delitos = sum(delitos), .by = c(fecha, delito))
   })
   
@@ -1142,7 +1167,7 @@ server <- function(input, output, session) {
                          labels = ~format(.x, big.mark = ".", decimal.mark = ","),
                          transform = "log", 
                          breaks = c(10, 100, 1000, 10000)
-                         ) +
+      ) +
       scale_color_brewer(palette = "Spectral", type = "qual", direction = -1) +
       coord_cartesian(clip = "on", xlim = c(input$fecha[1], input$fecha[2])) +
       guides(color = guide_legend(position = "bottom", nrow = 3)) +
@@ -1172,7 +1197,7 @@ server <- function(input, output, session) {
       labs(y = "Cantidad de delitos a nivel nacional\n(escala logarítmica)",
            title = "Delitos sexuales y de género, a nivel nacional", 
            subtitle = "Delitos por subgrupo delictual, escala logarítmica")
-  }, res = 95)
+  }, res = resolucion)
   
   
   
@@ -1212,12 +1237,12 @@ server <- function(input, output, session) {
     
     # si se selecciona 1 año
     if (input$año_variacion[2]-input$año_variacion[1] <= 1) {
-    p <- p +
-      scale_x_date(date_breaks = "months", date_labels = "%m", 
-                   minor_breaks = "months", expand = expansion(0.02)) +
-      theme(axis.text.x = element_text(margin = margin(t = 5)))
-    
-    # si se seleccionan 2 años
+      p <- p +
+        scale_x_date(date_breaks = "months", date_labels = "%m", 
+                     minor_breaks = "months", expand = expansion(0.02)) +
+        theme(axis.text.x = element_text(margin = margin(t = 5)))
+      
+      # si se seleccionan 2 años
     } else if (input$año_variacion[2]-input$año_variacion[1] == 2) {
       p <- p +
         scale_x_date(date_breaks = "3 months", date_labels = "%m/%y", 
@@ -1229,7 +1254,7 @@ server <- function(input, output, session) {
                      expand = expansion(0.02)) +
         theme(axis.text.x = element_text(angle = -90, vjust = 0.5, margin = margin(t = 5)))
     }
-      
+    
     
     p <- p +
       scale_fill_manual(values = c("Aumento" = color_negativo,
@@ -1262,7 +1287,7 @@ server <- function(input, output, session) {
       labs(y = "Variación porcentual respecto a mes anterior")
     
     return(p)
-  }, res = 95)
+  }, res = resolucion)
   
   # comunales/regionales ----
   
@@ -1399,7 +1424,7 @@ server <- function(input, output, session) {
            x = NULL)
     
     plot(p)
-  }, res = 95)
+  }, res = resolucion)
   
   
   ## gráfico barras delitos anuales ----
@@ -1517,7 +1542,7 @@ server <- function(input, output, session) {
            title = paste("Delitos principales en", texto_unidad_redactado()),
       ) +
       guides (fill = guide_legend(nrow = 2, keywidth = unit(1, "mm")))
-  }, res = 95)
+  }, res = resolucion)
   
   
   ## gráfico mensuales gobierno ----
@@ -1550,7 +1575,7 @@ server <- function(input, output, session) {
                     x = delitos * 0.98),
                 hjust = 1, color = color_texto, fontface = "bold") +
       scale_x_continuous(expand = expansion(c(0, 0.05))) +
-      scale_y_discrete(expand = expansion(0.1)) +
+      scale_y_discrete(expand = expansion(c(0.1, 0.1))) +
       #temas
       theme(text = element_text(color = color_texto),
             rect = element_rect(fill = color_fondo),
@@ -1561,15 +1586,16 @@ server <- function(input, output, session) {
             panel.grid.major.y = element_line(color = color_detalle),
             axis.title = element_text(color = color_secundario),
             axis.title.y = element_text(margin = margin(r = 8)),
+            axis.title.x = element_text(margin = margin(t = 10)),
             axis.text.x = element_blank()) +
       theme(panel.background = element_rect(fill = color_fondo), 
-            plot.title = element_text(face = "bold", margin = margin(t = 0, b = 10)),
+            plot.title = element_text(face = "bold", margin = margin(t = 0, b = 16)),
             plot.title.position = "plot",
             plot.background = element_rect(fill = color_fondo, linewidth = 0)) +
       labs(y = paste("Periodo presidencial"),
-           x = "Promedio de delitos mensuales por periodo presidencial",
+           x = "Promedio de delitos mensuales\npor periodo presidencial",
            title = paste("Delitos mensuales promedio denunciados \nsegún periodo de gobierno, en", texto_unidad_redactado()))
-  }, res = 95)
+  }, res = resolucion)
   
   
   ## gráfico comparativo tasas ----
@@ -1710,7 +1736,7 @@ server <- function(input, output, session) {
       theme(panel.background = element_rect(fill = color_fondo), 
             plot.background = element_rect(fill = color_fondo, linewidth = 0))
     
-  }, res = 95)
+  }, res = resolucion)
   
   
   # tablas ----
