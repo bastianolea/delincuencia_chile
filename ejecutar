@@ -1,8 +1,0 @@
-nohup R -e 'shiny::runApp("~/R/delincuencia_chile/app", port = 4063)'
-
-R -e 'browseURL("http://127.0.0.1:4063")'
-
-# chmod +x ~/R/economia_chile/ejecutar
-
-# kill -9 $(lsof -ti:3000)
-# system("kill -9 $(lsof -ti:3000)")
