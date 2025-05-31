@@ -14,7 +14,8 @@ source("funciones_delincuencia.R")
 
 # cargar resultados de scraping
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2024.rds")
-datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
+# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
+datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
@@ -91,7 +92,8 @@ cead_limpiada_4 <- cead_limpiada_3 |>
 # cortar fecha de corte de la base de datos manualmente, porque cead reporta 0 delitos en meses donde no tiene datos, o sea que si la base llega hasta marzo de 2024, abril 2024 muestra 0
 cead_limpiada_5 <- cead_limpiada_4 |> 
   # filter(fecha <= "2024-03-01")
-  filter(fecha <= "2024-09-01")
+  # filter(fecha <= "2024-09-01")
+  filter(fecha <= "2025-01-01")
 
 # cead_limpiada_4 |> 
 #   filter(fecha > "2024-09-01") |> 
@@ -105,31 +107,31 @@ cead_limpiada_5 <- cead_limpiada_4 |>
 # para que se carguen los datos existentes y se les agreguen los datos nuevos
 
 # # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
-# cead_nuevo <- cead_limpiada_5
-# cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
-# 
-# # revisar fechas de datasets
-# cead_nuevo |>
-#   summarize(min(fecha),
-#             max(fecha))
-# 
-# cead_anterior |>
-#   summarize(min(fecha),
-#             max(fecha))
-# 
-# cead_anterior |>
-#   filter(fecha < "2023-01-01") |>
-#   summarize(min(fecha),
-#             max(fecha))
-# 
-# #unir
-# cead_unido <- cead_anterior |>
-#   filter(fecha < "2024-01-01") |>
-#   bind_rows(cead_nuevo) |>
-#   arrange(fecha, comuna, delito)
-# # hasta aquí
+cead_nuevo <- cead_limpiada_5
+cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
 
-cead_unido <- cead_limpiada_5
+# revisar fechas de datasets
+cead_nuevo |>
+  summarize(min(fecha),
+            max(fecha))
+
+cead_anterior |>
+  summarize(min(fecha),
+            max(fecha))
+
+cead_anterior |>
+  filter(fecha < "2023-01-01") |>
+  summarize(min(fecha),
+            max(fecha))
+
+#unir
+cead_unido <- cead_anterior |>
+  filter(fecha < "2024-01-01") |>
+  bind_rows(cead_nuevo) |>
+  arrange(fecha, comuna, delito)
+# hasta aquí
+
+# cead_unido <- cead_limpiada_5
 
 # revisar ----
 
@@ -171,5 +173,5 @@ arrow::write_parquet(cead_unido, "app/cead_delincuencia.parquet")
 
 # para usuarios
 arrow::write_parquet(cead_unido, "datos_procesados/cead_delincuencia_chile.parquet")
-readr::write_csv2(cead_unido, "datos_procesados/cead_delincuencia_chile.csv")
+# readr::write_csv2(cead_unido, "datos_procesados/cead_delincuencia_chile.csv")
 

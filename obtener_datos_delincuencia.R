@@ -31,7 +31,8 @@ datos_cead <- cead_descargar_datos(años_elegidos, comunas_por_calcular)
 
 # guardar ----
 # guardar información cruda, que viene como texto html
-readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2024_2.rds", compress = "gz") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
+readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2024_3.rds", compress = "gz") # actualización de datos 2025 (31 de mayo 2025, datos nuevos hasta diciembre)
+# readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2024_2.rds", compress = "gz") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
 # readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2018_2024.rds", compress = "gz")
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2014_2024.rds")
 

@@ -24,7 +24,7 @@ delincuencia <- arrow::read_parquet("cead_delincuencia.parquet") |>
 datos_año_min = min(year(delincuencia$fecha))
 datos_año_max = max(year(delincuencia$fecha))
 datos_fecha_max = max(delincuencia$fecha)
-datos_ultimo_año_completo = 2023
+datos_ultimo_año_completo = 2024
 
 delitos_graves <- c("Hurtos", "Robos con violencia o intimidación", "Robo en lugar habitado",
                     "Robo de vehículo motorizado",
