@@ -16,7 +16,8 @@ source("funciones_delincuencia.R")
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2024.rds")
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
-datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2025.rds", compress = "gz") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
@@ -26,31 +27,31 @@ comunas_por_calcular <- cargar_comunas()$cut_comuna
 # por cada comuna
 cead_limpiada <- cead_limpiar_resultados(datos_cead, comunas_por_calcular)
 
-# cead_limpiada <- bind_rows(cead_limpiada, cead_limpiada2)
-
 
 #ordenar ----
-
 
 # filtrar delitos que en la tabla son agrupaciones de delitos individuales, como categorías de delitos que engloban delitos similares,
 # para así dejar solo delitos puntuales, de lo contrario al sumar los delitos habrían conteos repetidos y la cifra sería incorrecta
 cead_limpiada_2 <- cead_limpiada |> 
+  # #sacar categorías que son agrupaciones de delitos individuales
+  # filter(!delitos %in% c("Delitos de mayor connotación social", "Incivilidades",
+  #                        "Violencia intrafamiliar",
+  #                        "Delitos violentos", "Delitos contra la propiedad no violentos",
+  #                        "Delitos asociados a armas", "Otros delitos o faltas",
+  #                        "Homicidios y femicidios", "Violaciones y delitos sexuales",
+  #                        "Crímenes y simples delitos ley de armas", "Robos en lugares habitados y no habitados",
+  #                        "Robos en vehículos y sus accesorios", "Otras incivilidades")) |> 
   #sacar categorías que son agrupaciones de delitos individuales
-  filter(!delitos %in% c("Delitos de mayor connotación social", "Incivilidades",
-                         "Violencia intrafamiliar",
-                         "Delitos violentos", "Delitos contra la propiedad no violentos",
-                         "Delitos asociados a armas", "Otros delitos o faltas",
-                         "Homicidios y femicidios", "Violaciones y delitos sexuales",
-                         "Crímenes y simples delitos ley de armas", "Robos en lugares habitados y no habitados",
-                         "Robos en vehículos y sus accesorios", "Otras incivilidades")) |> 
+  filter(!delitos %in% c(
+    "Delitos contra la vida o integridad de las personas",
+    "Violaciones y delitos sexuales",
+    "Robos violentos",
+    "Violencia intrafamiliar ",
+    "Delitos asociados a drogas",
+    "Crímenes y simples delitos ley de armas")) |> 
   #recodificar homicidios
   mutate(delitos = recode(delitos,
                           "Otros homicidios" = "Homicidios"))
-
-sort(unique(cead_limpiada_2$delitos))
-
-# cead_limpiada_2 |> arrange(año, delitos, cut_comuna) |> filter(año == 2020) |> print(n=100)
-# unique(cead_limpiada_2$mes)
 
 # dentro de los delitos que son agrupaciones de otros delitos, el grupo "Robos con violencia o intimidación" contiene un delito del mismo nombre, por lo que hay que filtrarlo distinto dado que se llaman igual
 cead_limpiada_3 <- cead_limpiada_2 |> 
@@ -65,18 +66,6 @@ cead_limpiada_3 <- cead_limpiada_2 |>
   ungroup() |> 
   filter(arreglar == FALSE | (arreglar == TRUE & arreglar_n > arreglar_n_total/2)) |>
   select(-arreglar, -arreglar_n, -arreglar_n_total)
-  # filter(año == 2023) |> 
-  # print(n=30)
-
-# cead_limpiada_3 |> 
-#   filter(año == 2023,
-#          delitos == "Robos con violencia o intimidación") |> 
-#   print(n=30)
-# 
-# cead_limpiada_3 |> 
-#   group_by(delitos, cut_comuna, año) |> 
-#   mutate(n = n()) |> 
-#   filter(n > 12)
 
 # crear fecha, corregir formatos de columnas
 cead_limpiada_4 <- cead_limpiada_3 |> 
@@ -108,7 +97,7 @@ visdat::vis_miss(cead_limpiada_5)
 # cead_limpiada_4 |>
 #   filter(fecha > "2024-09-01") |>
 #   summarize(max(delito_n))
-  
+
 # cead |> count(delito)
 
 

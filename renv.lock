@@ -460,6 +460,21 @@
       ],
       "Hash": "8f27335f2bcff4d6035edcc82d7d46de"
     },
+    "diffobj": {
+      "Package": "diffobj",
+      "Version": "0.3.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "crayon",
+        "methods",
+        "stats",
+        "tools",
+        "utils"
+      ],
+      "Hash": "e036ce354ab60e705ac5f40bac87e8cb"
+    },
     "digest": {
       "Package": "digest",
       "Version": "0.6.37",
@@ -2062,6 +2077,28 @@
       ],
       "Hash": "c826c7c4241b6fc89ff55aaea3fa7491"
     },
+    "visdat": {
+      "Package": "visdat",
+      "Version": "0.6.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "dplyr",
+        "forcats",
+        "ggplot2",
+        "glue",
+        "magrittr",
+        "purrr",
+        "readr",
+        "scales",
+        "stats",
+        "tibble",
+        "tidyr"
+      ],
+      "Hash": "aa0c558f21cab0196eea9b51433f2c0e"
+    },
     "vroom": {
       "Package": "vroom",
       "Version": "1.6.5",
@@ -2087,6 +2124,21 @@
         "withr"
       ],
       "Hash": "390f9315bc0025be03012054103d227c"
+    },
+    "waldo": {
+      "Package": "waldo",
+      "Version": "0.6.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "diffobj",
+        "glue",
+        "methods",
+        "rlang"
+      ],
+      "Hash": "b7b91294ee9418a54527a9a9d8677597"
     },
     "warp": {
       "Package": "warp",
