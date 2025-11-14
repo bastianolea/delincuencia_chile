@@ -290,9 +290,9 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                              em("Bastián Olea Herrera")
                          ),
                          
-                         markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública. Los datos abarcan todas las comunas del país desde 2018 en adelante."), 
+                         markdown("Este visualizador contiene gráficos que representan **estadísticas delictuales oficiales** entregadas por el [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.minsegpublica.gob.cl/estadisticas-delictuales/), quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública. Los datos abarcan todas las comunas del país desde 2018 en adelante."), 
                          
-                         markdown("Según el [CEAD](https://cead.spd.gov.cl/estadisticas-delictuales/), cada dato se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._"),
+                         markdown("Según el [CEAD](https://cead.minsegpublica.gob.cl/estadisticas-delictuales/), cada dato se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._"),
                          
                          markdown("El objetivo de esta plataforma es transparentar **datos objetivos sobre la delincuencia en el país,** 
              otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político."
@@ -600,7 +600,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                          
                          markdown("Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)"),
                          
-                         markdown("Fuente de los datos: [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.spd.gov.cl/estadisticas-delictuales/)"),
+                         markdown("Fuente de los datos: [Centro de Estudio y Análisis del Delito (CEAD)](https://cead.minsegpublica.gob.cl/estadisticas-delictuales/)"),
                          
                          markdown("Código de fuente de esta app y del procesamiento de los datos [disponible en GitHub.](https://github.com/bastianolea/delincuencia_chile)"),
                          

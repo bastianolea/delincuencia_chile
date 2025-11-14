@@ -6,9 +6,9 @@ _Bastián Olea Herrera_
 
 ## Aplicación
 
-En este [visualizador web](https://bastianoleah.shinyapps.io/delincuencia_chile) se presentan gráficos con datos estadísticas delictuales entregadas por el [Centro de Estudio y Análisis del Delito (CEAD),](https://cead.spd.gov.cl/estadisticas-delictuales/) quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública.
+En este [visualizador web](https://bastianoleah.shinyapps.io/delincuencia_chile) se presentan gráficos con datos estadísticas delictuales entregadas por el [Centro de Estudio y Análisis del Delito (CEAD),](https://cead.minsegpublica.gob.cl/estadisticas-delictuales/) quienes a su vez obtienen los datos desde reportes de Carabineros y la Policía de Investigaciones de Chile al Ministerio del Interior y Seguridad Pública.
 
-Según el [CEAD,](https://cead.spd.gov.cl/estadisticas-delictuales/) cada dato de delito se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._
+Según el [CEAD,](https://cead.minsegpublica.gob.cl/estadisticas-delictuales/) cada dato de delito se compone por: _denuncias formales que la ciudadanía realiza en alguna unidad policial posterior a la ocurrencia del delito, más los delitos de los que la policía toma conocimiento al efectuar una detención en flagrancia, es decir, mientras ocurre el ilícito._
 
 El objetivo de esta plataforma es transparentar datos objetivos de la delincuencia en el país, otorgándoles contexto para tratar el tema con seriedad en lugar de sensacionalismo y provecho político.
 
@@ -33,6 +33,10 @@ La base de datos de delitos denunciados en Chile del Centro de Estudio y Anális
 
 
 ## Actualizaciones
+
+**Actualización 13/11/2025:**
+- Datos actualizados hasta junio de 2025 (máximo disponible en CEAD a la fecha)
+- Actualización de código para cambio de dirección del CEAD después del ciberataque y cambio de ministerio
 
 **Actualización 17/12/2024:**
 - Datos actualizados hasta septiembre de 2024 (máximo disponible en CEAD a la fecha)

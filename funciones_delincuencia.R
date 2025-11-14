@@ -9,7 +9,7 @@ cargar_comunas <- function() {
 
 # obtener datos ----
 
-# para nuevas request: entrar a #https://cead.spd.gov.cl/estadisticas-delictuales/, hacer query por varios delitos, entrar al inspector, 
+# para nuevas request: entrar a #https://cead.minsegpublica.gob.cl/estadisticas-delictuales/, hacer query por varios delitos, entrar al inspector, 
 # pestaña red, encontrar get_estadisticas_delictuales.php, clic derecho y copiar como cURL.
 
 
