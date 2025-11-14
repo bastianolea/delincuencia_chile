@@ -30,12 +30,15 @@ cead_generar_request <- function(año_elegido, comuna_numero) {
 
 # función que ejecuta la request o solicitud en base al texto generado con la función anterior
 cead_realizar_request <- function(xml.request) {
-  getURL(url = "https://cead.spd.gov.cl/wp-content/themes/gobcl-wp-master/data/get_estadisticas_delictuales.php",
-         postfields = xml.request,
-         httpheader = c(Connection = "close", 
-                        'Content-Type' = "application/x-www-form-urlencoded; charset=UTF-8", #"application/xml",
-                        'Content-length' = nchar(xml.request)
-         )
+  getURL(
+    # url = "https://cead.spd.gov.cl/wp-content/themes/gobcl-wp-master/data/get_estadisticas_delictuales.php",
+    url = "https://cead.minsegpublica.gob.cl/wp-content/themes/gobcl-wp-master/data/get_estadisticas_delictuales.php",
+    
+    postfields = xml.request,
+    httpheader = c(Connection = "close", 
+                   'Content-Type' = "application/x-www-form-urlencoded; charset=UTF-8", #"application/xml",
+                   'Content-length' = nchar(xml.request)
+    )
   )
 }
 
@@ -66,7 +69,7 @@ cead_realizar_request <- function(xml.request) {
 
 
 cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
-
+  
   require(purrr)
   
   datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
@@ -97,7 +100,7 @@ cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
       
       Sys.sleep((final-inicio) * 2) #espera para no saturar al servidor
       
-      if (nchar(data) < 30000) message("(!) tabla sin suficiente información")
+      # if (nchar(data) < 30000) message("(!) tabla sin suficiente información")
       
       return(data)
     })
@@ -131,7 +134,7 @@ cead_obtener_tabla <- function(cead_comuna_año) {
 
 # itera sobre el objeto datos_cead, retornado por cead_descargar_datos(), que es el resultado del scraping, para convertir los datos crudos en tablas, y retornar todos los datos de comunas y años en una sola tabla 
 cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
-
+  
   require(purrr)
   require(furrr)
   require(future)

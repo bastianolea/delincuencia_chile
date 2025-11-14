@@ -15,7 +15,8 @@ source("funciones_delincuencia.R")
 # cargar resultados de scraping
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2024.rds")
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
-datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
+# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
+datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
@@ -88,15 +89,24 @@ cead_limpiada_4 <- cead_limpiada_3 |>
   mutate(across(where(is.character), as.factor)) |> 
   select(comuna, cut_comuna, region, cut_region, fecha, delito, delito_n, everything())
 
+max(cead_limpiada_4$fecha)
+
+cead_limpiada_4 |> 
+  group_by(fecha) |> 
+  summarize(sum(delito_n))
 
 # cortar fecha de corte de la base de datos manualmente, porque cead reporta 0 delitos en meses donde no tiene datos, o sea que si la base llega hasta marzo de 2024, abril 2024 muestra 0
 cead_limpiada_5 <- cead_limpiada_4 |> 
   # filter(fecha <= "2024-03-01")
   # filter(fecha <= "2024-09-01")
-  filter(fecha <= "2025-01-01")
+  filter(fecha <= "2025-06-01")
 
-# cead_limpiada_4 |> 
-#   filter(fecha > "2024-09-01") |> 
+# revisar
+waldo::compare(cead_limpiada_4, cead_limpiada_5)
+visdat::vis_miss(cead_limpiada_5)
+
+# cead_limpiada_4 |>
+#   filter(fecha > "2024-09-01") |>
 #   summarize(max(delito_n))
   
 # cead |> count(delito)
@@ -124,9 +134,12 @@ cead_anterior |>
   summarize(min(fecha),
             max(fecha))
 
+waldo::compare(cead_anterior |> pull(delito) |> unique() |> sort() |> as.character(),
+               cead_nuevo |> pull(delito) |> unique() |> sort() |> as.character())
+# cambiaron las clasificaciones!
+
 #unir
 cead_unido <- cead_anterior |>
-  filter(fecha < "2024-01-01") |>
   bind_rows(cead_nuevo) |>
   arrange(fecha, comuna, delito)
 # hasta aquí
@@ -149,6 +162,8 @@ cead_unido |>
   summarize(n = n())
 
 #revisar visualmente
+library(ggplot2)
+
 cead_unido |> 
   summarize(delito_n = sum(delito_n), .by = c(fecha)) |> 
   ggplot(aes(fecha, delito_n)) +
@@ -158,6 +173,12 @@ cead_unido |>
 cead_unido |> 
   summarize(delito_n = sum(delito_n), .by = c(fecha, comuna)) |> 
   ggplot(aes(fecha, delito_n, color = comuna)) +
+  geom_line() +
+  theme(legend.position = "none")
+
+cead_unido |> 
+  summarize(delito_n = sum(delito_n), .by = c(fecha, delito)) |> 
+  ggplot(aes(fecha, delito_n, color = delito)) +
   geom_line() +
   theme(legend.position = "none")
 
