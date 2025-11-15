@@ -74,13 +74,13 @@ cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
   require(purrr)
   
   datos_cead <- map(comunas_por_calcular |> set_names(), \(comuna) {
-    message("inciando comuna ", comuna)
+    message("iniciando comuna ", comuna)
     # comuna = 1101 #comunas_por_calcular[100]
     
     # por cada año especificado
     data <- map(años_elegidos |> set_names(), \(año) {
       # año = 2024
-      message("año ", año)
+      message("  año ", año)
       
       # generar request
       xml.request = cead_generar_request(año_elegido = año, 
@@ -152,7 +152,7 @@ cead_limpiar_resultados <- function(datos_cead, comunas_por_calcular) {
     
     #por cada año
     datos_comuna_año <- map(names(cead_comuna), \(.año) {
-      message("obteniendo año ", .año)
+      message("  año ", .año)
       # .año <- "2023"
       
       # data |> cead_obtener_tabla()

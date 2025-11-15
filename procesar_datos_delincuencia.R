@@ -17,7 +17,7 @@ source("funciones_delincuencia.R")
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
 # datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
-datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2025.rds", compress = "gz") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2025.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
@@ -80,13 +80,11 @@ cead_limpiada_2 <- cead_limpiada |>
     "Ofensas al pudor",
     "Otras incivilidades",
     
-    # cubiertos por "Otros delitos o faltas"
+    # en sección "Otros delitos o faltas", sólo considerar "Robo frustrado"
     "Abigeato",
-    "Robo frustrado"
-    # "Otros delitos o faltas" #(repetido)
-  )) |> 
-  # sacar delitos irrelevantes
-  filter(delitos != "Otros delitos o faltas")
+    # "Robo frustrado"
+    "Otros delitos o faltas" #(repetido)
+  ))
 
 # repetidos en grupo y subgrupo:
 # "Robos con violencia o intimidación", #(repetida)
@@ -113,10 +111,14 @@ cead_limpiada_3 <- cead_limpiada_2 |>
          arreglar_n_total = n()) |> #cantidad de filas, ergo de meses... en el delito repetido son 24, en otros 12 o menos
   ungroup() |> 
   # dejar solamente el delito, no el grupo
-  filter(arreglar == FALSE | (arreglar == TRUE & arreglar_n == 2)) |>
+  filter(arreglar == FALSE | (arreglar == TRUE & arreglar_n > arreglar_n_total/2)) |> # para que aplique si hay 1 o 2
   select(-arreglar, -arreglar_n, -arreglar_n_total)
 
 n_distinct(cead_limpiada_4$delito)
+
+cead_limpiada_3 |> 
+  distinct(delitos) |> 
+  print(n=Inf)
 
 
 # crear fecha, corregir formatos de columnas
@@ -156,39 +158,41 @@ waldo::compare(cead_limpiada_4, cead_limpiada_5)
 # para que se carguen los datos existentes y se les agreguen los datos nuevos
 
 # # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
-cead_nuevo <- cead_limpiada_5
-cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
-
-# revisar fechas de datasets
-cead_nuevo |>
-  summarize(min(fecha),
-            max(fecha))
-
-cead_anterior |>
-  summarize(min(fecha),
-            max(fecha))
-
-cead_anterior |>
-  filter(fecha < "2023-01-01") |>
-  summarize(min(fecha),
-            max(fecha))
-
-waldo::compare(cead_anterior |> pull(delito) |> unique() |> sort() |> as.character(),
-               cead_nuevo |> pull(delito) |> unique() |> sort() |> as.character())
-# cambiaron las clasificaciones!
-
-#unir
-cead_unido <- cead_anterior |>
-  bind_rows(cead_nuevo) |>
-  arrange(fecha, comuna, delito)
-# (hasta aquí el proceso de actualización de base anterior)
+# cead_nuevo <- cead_limpiada_5
+# cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
+# 
+# # revisar fechas de datasets
+# cead_nuevo |>
+#   summarize(min(fecha),
+#             max(fecha))
+# 
+# cead_anterior |>
+#   summarize(min(fecha),
+#             max(fecha))
+# 
+# cead_anterior |>
+#   filter(fecha < "2023-01-01") |>
+#   summarize(min(fecha),
+#             max(fecha))
+# 
+# waldo::compare(cead_anterior |> pull(delito) |> unique() |> sort() |> as.character(),
+#                cead_nuevo |> pull(delito) |> unique() |> sort() |> as.character())
+# # cambiaron las clasificaciones!
+# 
+# #unir
+# cead_unido <- cead_anterior |>
+#   bind_rows(cead_nuevo) |>
+#   arrange(fecha, comuna, delito)
+# # (hasta aquí el proceso de actualización de base anterior)
 
 # (si no se actualiza base anterior, ejecutar lo siguiente)
-# cead_unido <- cead_limpiada_5
+cead_unido <- cead_limpiada_5
+
 
 
 
 # revisar ----
+cead_unido |> distinct(delito) |> print(n=Inf)
 
 cead_unido |> filter(cut_comuna == 1101) |> 
   filter(fecha == max(fecha)) |> 

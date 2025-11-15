@@ -52,36 +52,68 @@ La base de datos de delitos denunciados en Chile del Centro de Estudio y Anális
 - Se cambia el paquete que carga los datos a `nanoparquet`, que tiene menos dependencias que `arrow`
 - Se flexibiliza el código de la app para que se adapte a las fechas que vienen en los datos, para facilitar actualizaciones futuras
 
+## Notas metodológicas
 
-## Gráficos
-### Comparación de delitos reportados entre 2019 y 2023
+Fueron considerados delitos graves:
+- Homicidios
+- Violencia intrafamiliar 
+- Robos con violencia o intimidación
+- Robo violento de vehículo motorizado
+- Robo de vehículo motorizado
+- Robo en lugar habitado
+- Robo por sorpresa
+- Robo frustrado
+- Hurtos
 
-#### Delitos en Estación Central, comparación 2019 y 2023
-![](graficos/grafico_comparativo_tasa_estación_central_2019_2023.png)
+Fueron considerados delitos de mayor connotación social:
+- Homicidios
+- Violencia intrafamiliar 
+- Robos con violencia o intimidación
+- Robo violento de vehículo motorizado
+- Robo en lugar habitado  
+- Robo por sorpresa
+- Robo frustrado
+- Hurtos
+- Robos en lugar no habitado
+- Robo de vehículo motorizado
+- Otros robos con fuerza en las cosas
+- Lesiones graves o gravísimas
+- Lesiones menos graves
+- Lesiones leves
+- Homicidios
+- Femicidios
+- Violaciones
 
-#### Delitos en La Florida, comparación 2019 y 2023
-![](graficos/grafico_comparativo_tasa_la_florida_2019_2023.png)
+Delitos omitidos por poca relevancia:
+- Abigeato
+- Otros delitos o faltas
 
-#### Delitos en Providencia, comparación 2019 y 2023
-![](graficos/grafico_comparativo_tasa_providencia_2019_2023.png)
-
-#### Delitos en Puente Alto, comparación 2019 y 2023
-![](graficos/grafico_comparativo_tasa_puente_alto_2019_2023.png)
-
-#### Delitos en Santiago, comparación 2019 y 2023
-![](graficos/grafico_comparativo_tasa_santiago_2019_2023.png)
-
-#### Delitos en Ñuñoa, comparación 2019 y 2023
-![](graficos/grafico_comparativo_tasa_ñuñoa_2019_2023.png)
-
-
-
-----
-
-Diseñado y programado en R por Bastián Olea Herrera. Magíster en Sociología, data scientist.
-
-https://bastianolea.rbind.io
-
-Puedes explorar mis otras [aplicaciones interactivas sobre datos sociales en mi portafolio.](https://bastianolea.github.io/shiny_apps/)
-
-Contacto: https://bastianolea.rbind.io/contact
+Delitos omitidos por ser considerados demasiado específicos/minoritarios (pero de todas maneras son contabilizados al estar dentro de otro grupo de delitos):
+- cubiertos por "Violencia intrafamiliar"
+  - Violencia intrafamiliar con lesiones físicas
+  - Violencia intrafamiliar con lesiones psicológicas
+  - Maltrato habitual
+  - Amenazas en contexto de violencia intrafamiliar
+  - Violencia intrafamiliar no clasificada
+- cubiertos por "Delitos asociados a drogas"
+  - Tráfico de sustancias
+  - Microtráfico de sustancias
+  - Elaboración o producción de sustancias
+  - Otras infracciones a la ley de drogas
+- cubiertos por "Delitos asociados a armas"
+  - Disparo injustificado
+  - Porte / posesión de armas o explosivos
+  - Otras infracciones a la ley de armas
+- cubiertos por "Amenaza falta o riña"
+  - Amenaza con armas (falta)
+  - Riña Pública
+- cubiertos por "Consumo de alcohol y drogas en la vía pública"
+  - Consumo de drogas en la vía pública
+  - Porte de drogas
+  - Otras faltas a la ley de drogas
+  - Consumo de alcohol en la vía pública
+- cubiertos por "Otras incivilidades"
+  - Animales sueltos en la vía pública
+  - Comercio ilegal
+  - Ofensas al pudor
+  - Otras incivilidades

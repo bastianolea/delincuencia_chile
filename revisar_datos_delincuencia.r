@@ -312,3 +312,10 @@ delincuencia_pais_tipo |>
   scale_y_continuous(limits = c(-1, 1)) +
   facet_wrap(~tipo, ncol = 1, axes = "all_x") +
   theme(legend.position = "none")
+
+
+
+
+delincuencia |> 
+  filter(delito == "Robos con violencia o intimidación") |> 
+  filter(comuna == "La Florida")

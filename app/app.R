@@ -26,19 +26,67 @@ datos_año_max = max(year(delincuencia$fecha))
 datos_fecha_max = max(delincuencia$fecha)
 datos_ultimo_año_completo = 2024
 
-delitos_graves <- c("Hurtos", "Robos con violencia o intimidación", "Robo en lugar habitado",
-                    "Robo de vehículo motorizado",
-                    "Robo de objetos de o desde vehículo",
-                    "Robo por sorpresa",
-                    "Robo frustrado",
-                    "Homicidios",
-                    "Violencia intrafamiliar a mujer")
+delitos_graves <- c(
+  "Homicidios",
+  "Violencia intrafamiliar",
+  "Robos con violencia o intimidación",
+  "Robo violento de vehículo motorizado",
+  "Robo de vehículo motorizado",
+  "Robo en lugar habitado",
+  "Robo por sorpresa",
+  "Robo frustrado",
+  "Hurtos")
+  
+delitos_de_mayor_connotacion_social <- c(
+  "Homicidios",
+  "Violencia intrafamiliar",
+  "Robos con violencia o intimidación",
+  "Robo violento de vehículo motorizado",
+  "Robo en lugar habitado",
+  "Robos en lugar no habitado",
+  "Robo por sorpresa",
+  "Robo frustrado",
+  "Hurtos",
+  "Robo de vehículo motorizado",
+  "Otros robos con fuerza en las cosas",
+  "Lesiones graves o gravísimas",
+  "Lesiones menos graves",
+  "Lesiones leves",
+  "Homicidios",
+  "Femicidios",
+  "Violaciones")
 
-delitos_de_mayor_connotacion_social <- c("Robos con violencia o intimidación",
-                                         "Robo por sorpresa", "Robo en lugar habitado", "Robo en lugar no habitado", "Robo de vehículo motorizado",
-                                         "Robo de accesorios de o desde vehículo", "Otros robos con fuerza en las cosas", "Hurtos", "Lesiones graves o gravísimas",
-                                         "Lesiones leves", "Lesiones menos graves", "Homicidios", "Femicidio",
-                                         "Femicidio no íntimo", "Violación con homicidio", "Otras violaciones", "Tortura o apremios ilegítimos con violación")
+delitos_genero <- c("Femicidios", 
+                    "Violencia intrafamiliar",
+                    "Violaciones",
+                    "Abusos sexuales",
+                    "Acosos sexuales",
+                    "Otros delitos sexuales")
+
+delitos_homicidio <- c("Homicidios", "Femicidios")
+
+delitos_seleccionados_lineas <- c("Hurtos", 
+                                  "Robos con violencia o intimidación", 
+                                  "Robo de vehículo motorizado",
+                                  "Robo en lugar habitado", 
+                                  "Robo por sorpresa")
+
+delitos_seleccionados_tabla <- c(
+  "Homicidios",
+  "Violencia intrafamiliar",
+  "Robos con violencia o intimidación",
+  "Robo violento de vehículo motorizado",
+  "Robo en lugar habitado",
+  "Robos en lugar no habitado",
+  "Robo por sorpresa",
+  "Robo frustrado",
+  "Hurtos",
+  "Robo de vehículo motorizado",
+  "Lesiones graves o gravísimas",
+  "Homicidios",
+  "Delitos asociados a drogas",                   
+  "Delitos asociados a armas")
+
 
 lista_delitos <- as.character(unique(delincuencia$delito)) |> sort()
 
@@ -469,11 +517,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                                      width = "100%",
                                      multiple = TRUE,
                                      choices = lista_delitos,
-                                     selected = c("Hurtos", 
-                                                  "Robos con violencia o intimidación", 
-                                                  "Robo de vehículo motorizado",
-                                                  "Robo en lugar habitado", 
-                                                  "Robo por sorpresa"),
+                                     selected = delitos_seleccionados_lineas,
                                      options = list(maxOptions = 8, 
                                                     maxOptionsText = "Máximo 8",
                                                     noneSelectedText = "Sin selección",
@@ -526,7 +570,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                                          choices = datos_año_min:datos_ultimo_año_completo, selected = 2019, 
                                          multiple = F, inline = T),
                              pickerInput("comparativo_año_2", label = "Segundo año",
-                                         choices = datos_año_min:datos_ultimo_año_completo, selected = 2023,
+                                         choices = datos_año_min:datos_ultimo_año_completo, selected = 2024,
                                          multiple = F, inline = T)
                          ),
                          
@@ -572,10 +616,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                                      width = "100%",
                                      multiple = TRUE,
                                      choices = lista_delitos,
-                                     selected = c("Homicidios", "Amenazas o riña", "Consumo de alcohol y drogas en la vía pública", 
-                                                  "Hurtos", "Daños", "Violencia intrafamiliar a mujer", "Robos con violencia o intimidación", 
-                                                  "Lesiones leves", "Robo de objetos de o desde vehículo", "Robo en lugar habitado", 
-                                                  "Robos en lugar no habitado"),
+                                     selected = delitos_seleccionados_tabla,
                                      options = list(maxOptions = 8, 
                                                     maxOptionsText = "Máximo 8",
                                                     noneSelectedText = "Sin selección",
@@ -612,7 +653,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 fluidRow(
                   column(12,
                          div(
-                           style = "max-width: 380px; margin: auto; padding: 0px; margin-top: -18px;",
+                           style = "max-width: 320px; margin: auto; padding: 0px; margin-top: -18px;",
                            
                            tags$style(HTML(".cafecito:hover {opacity: 70%; transition: 0.3s; color: black !important;} .cafecito a:hover {color: black}")),
                            
@@ -628,6 +669,7 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
 )
 
 #—----
+
 server <- function(input, output, session) {
   # browser()
   
@@ -1032,7 +1074,7 @@ server <- function(input, output, session) {
       coord_cartesian(clip = "off") +
       labs(y = "Cantidad de delitos denunciados",
            title = "Delitos denunciados a nivel nacional",
-           subtitle = "Delitos por subgrupo delictual, promedio móvil de 3 meses")
+           subtitle = "Delitos más frecuentes, promedio móvil de 3 meses")
   }, res = resolucion)
   
   
@@ -1095,7 +1137,7 @@ server <- function(input, output, session) {
   #### delincuencia país solo homicidios ----
   delincuencia_pais_tipo_homicidios <- reactive({
     delincuencia |>
-      filter(delito %in% c("Homicidios", "Femicidio", "Femicidio no íntimo")) |>
+      filter(delito %in% delitos_homicidio) |>
       summarize(delitos = sum(delitos), .by = c(fecha, delito)) |>
       arrange(delito, fecha) |>
       group_by(delito) |>
@@ -1149,9 +1191,7 @@ server <- function(input, output, session) {
   #### delincuencia país género ----
   delincuencia_pais_tipo_genero <- reactive({
     delincuencia |>
-      filter(delito %in% c("Femicidio", "Abusos sexuales", "Otros delitos sexuales", "Otras violaciones", "Suicidio femicida", "Violencia intrafamiliar a mujer",
-                           "Femicidio no íntimo", "Violación con homicidio"
-      )) |>
+      filter(delito %in% delitos_genero) |>
       summarize(delitos = sum(delitos), .by = c(fecha, delito))
   })
   
