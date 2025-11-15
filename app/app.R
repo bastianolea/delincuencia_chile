@@ -12,6 +12,7 @@ library(lubridate) |> suppressPackageStartupMessages()
 library(stringr)
 library(forcats)
 library(glue)
+library(shinydisconnect)
 
 options(scipen = 9999)
 
@@ -124,6 +125,15 @@ ui <- fluidPage(title = "Estadísticas de delincuencia en Chile",
                 lang = "es",
                 
                 useShinyjs(),
+                
+                # mensaje en caso de desconexión
+                disconnectMessage(
+                  background = color_fondo, colour = color_texto,
+                  refreshColour = color_enlaces, overlayColour = color_fondo,
+                  size = 14,
+                  text = "La aplicación se desconectó. Vuelve a cargar la página.",
+                  refresh = "Volver a cargar"
+                ),
                 
                 # tipografías en vivo desde google fonts
                 # use_googlefont("Open Sans"), #cargar fuente o tipo de letra
