@@ -35,6 +35,9 @@ La base de datos de delitos denunciados en Chile del Centro de Estudio y Anális
 
 ## Actualizaciones
 
+**Actualización 29/06/2026:**
+- Datos actualizados hasta diciembre de 2025 (máximo disponible en CEAD a la fecha)
+
 **Actualización 13/11/2025:**
 - Datos actualizados hasta junio de 2025 (máximo disponible en CEAD a la fecha)
 - Actualización de código para cambio de dirección del CEAD después del ciberataque y cambio de ministerio
