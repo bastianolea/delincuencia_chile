@@ -13,11 +13,12 @@ source("funciones_delincuencia.R")
 # el script también sirve para procesar datos nuevos, y agregarlos incrementalmente a la versión anterior de los datos
 
 # cargar resultados de scraping
-# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2024.rds")
-# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
-# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
-# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
-datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2018_2025.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2018_2024.rds")
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2024_2.rds") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2018_2025.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2025.rds") # actualización de datos 2026 (29 de mayo 2026, datos nuevos hasta diciembre 2025)
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
@@ -33,18 +34,20 @@ cead_limpiada <- cead_limpiar_resultados(datos_cead, comunas_por_calcular)
 # filtrar delitos que en la tabla son agrupaciones de delitos individuales, como categorías de delitos que engloban delitos similares,
 # para así dejar solo delitos puntuales, de lo contrario al sumar los delitos habrían conteos repetidos y la cifra sería incorrecta
 cead_limpiada_2 <- cead_limpiada |> 
-  #sacar categorías que son agrupaciones de delitos individuales
+  # sacar categorías que son agrupaciones de delitos individuales
   filter(!delitos %in% c(
     "Delitos contra la vida o integridad de las personas",
     "Homicidios y femicidios",
-    "Violaciones y delitos sexuales",
+    "Violaciones y otros delitos sexuales",
     # "Robos con violencia o intimidación", #(repetida)
     "Robos violentos",
     "Delitos contra la propiedad no violentos",
     "Robos en lugares habitados y no habitados",
+    "Robos en lugar habitado y no habitado",
     "Robos de vehículos y sus accesorios",
+    "Robos de vehículo motorizado o de sus accesorios",
     "Incivilidades")) |> 
-  # saacr delitos menores o irrelevantes cubiertos por agrupaciones
+  # sacar delitos menores o irrelevantes cubiertos por agrupaciones
   filter(!delitos %in% c(
     # cubiertos por "Violencia intrafamiliar"
     "Violencia intrafamiliar con lesiones físicas",
@@ -90,18 +93,24 @@ cead_limpiada_2 <- cead_limpiada |>
 # "Robos con violencia o intimidación", #(repetida)
 # "Otros delitos o faltas" #(repetido)
 
-# cead_limpiada_2 |> 
+# cead_limpiada_2 |>
 #   filter(cut_comuna == 1101,
-#          año == 2024, mes == 4) |> 
-#   select(delitos, cifra) |> 
+#          año == 2025, mes == 4) |>
+#   select(delitos, cifra) |>
 #   print(n=Inf)
 
 # dentro de los delitos que son agrupaciones de otros delitos, el grupo "Robos con violencia o intimidación" 
 # contiene un delito del mismo nombre, por lo que hay que filtrarlo distinto dado que se llaman igual
 cead_limpiada_3 <- cead_limpiada_2 |> 
-    # filter(cut_comuna == 1101,
-    #        año == 2024, mes == 4) |> 
-    # # select(delitos, cifra) |>
+  #   # filter(cut_comuna == 1101,
+  #   #        año == 2024, mes == 4) |> 
+  #   # # select(delitos, cifra) |>
+  # 
+  # cead_limpiada_2 |> 
+  # filter(cut_comuna == 10101) |> 
+  # filter(mes == 1, año == 2025) |> 
+  # count(delitos, sort = TRUE)
+  # 
   # "Robos con violencia o intimidación" #sale dos veces, una es agrupación con robo violento de vehiculo motorizado y otra es el real
   mutate(arreglar = case_when(delitos %in% c("Robos con violencia o intimidación", "Otros delitos o faltas") ~ TRUE,
                               .default = FALSE)) |> 
@@ -114,7 +123,7 @@ cead_limpiada_3 <- cead_limpiada_2 |>
   filter(arreglar == FALSE | (arreglar == TRUE & arreglar_n > arreglar_n_total/2)) |> # para que aplique si hay 1 o 2
   select(-arreglar, -arreglar_n, -arreglar_n_total)
 
-n_distinct(cead_limpiada_4$delito)
+n_distinct(cead_limpiada_3$delitos)
 
 cead_limpiada_3 |> 
   distinct(delitos) |> 
@@ -133,13 +142,15 @@ cead_limpiada_4 <- cead_limpiada_3 |>
   select(comuna, cut_comuna, region, cut_region, fecha, delito, delito_n, everything())
 
 
+min(cead_limpiada_4$fecha)
 max(cead_limpiada_4$fecha)
 
 # cortar fecha de corte de la base de datos manualmente, porque cead reporta 0 delitos en meses donde no tiene datos, o sea que si la base llega hasta marzo de 2024, abril 2024 muestra 0
 cead_limpiada_5 <- cead_limpiada_4 |> 
   # filter(fecha <= "2024-03-01")
   # filter(fecha <= "2024-09-01")
-  filter(fecha <= "2025-06-01")
+  # filter(fecha <= "2025-06-01")
+  filter(fecha <= "2025-12-01")
 
 # revisar
 waldo::compare(cead_limpiada_4, cead_limpiada_5)
@@ -153,13 +164,17 @@ waldo::compare(cead_limpiada_4, cead_limpiada_5)
 
 
 
-# unir con datos anteriores (opcional) ----
-# si se está ejecutando el script para obtener datos nuevos, des-comentar este paso y ajustar las fechas de corte
-# para que se carguen los datos existentes y se les agreguen los datos nuevos
-
-# # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
+# # unir con datos anteriores (opcional) ----
+# # si se está ejecutando el script para obtener datos nuevos, des-comentar este paso y ajustar las fechas de corte
+# # para que se carguen los datos existentes y se les agreguen los datos nuevos
+# 
+# # actualización de datos 2025 (29 de mayo 2026, datos nuevos hasta diciembre 2025)
 # cead_nuevo <- cead_limpiada_5
-# cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet")
+# cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet") |>
+#   # correcciones 2026-05-29
+#   mutate(delito = recode(
+#     delito,
+#     "Robos en lugar no habitado" = "Robo en lugar no habitado"))
 # 
 # # revisar fechas de datasets
 # cead_nuevo |>
@@ -175,15 +190,17 @@ waldo::compare(cead_limpiada_4, cead_limpiada_5)
 #   summarize(min(fecha),
 #             max(fecha))
 # 
-# waldo::compare(cead_anterior |> pull(delito) |> unique() |> sort() |> as.character(),
-#                cead_nuevo |> pull(delito) |> unique() |> sort() |> as.character())
+# waldo::compare(cead_anterior |> pull(delito) |> unique() |>  as.character() |> sort(),
+#                cead_nuevo |> pull(delito) |> unique() |>  as.character() |> sort())
 # # cambiaron las clasificaciones!
 # 
-# #unir
+# 
+# # unir
 # cead_unido <- cead_anterior |>
+#   filter(fecha < min(cead_nuevo$fecha)) |>
 #   bind_rows(cead_nuevo) |>
 #   arrange(fecha, comuna, delito)
-# # (hasta aquí el proceso de actualización de base anterior)
+# # # (hasta aquí el proceso de actualización de base anterior)
 
 # (si no se actualiza base anterior, ejecutar lo siguiente)
 cead_unido <- cead_limpiada_5
@@ -198,6 +215,12 @@ cead_unido |> filter(cut_comuna == 1101) |>
   filter(fecha == max(fecha)) |> 
   arrange(delito) |> 
   print(n=Inf)
+
+cead_unido |> 
+  filter(cut_comuna == 1101) |> 
+  filter(fecha == max(fecha)) |> 
+  count(delito) |> 
+  filter(n != 1)
 
 cead_unido |> 
   summarize(min(fecha),
@@ -239,7 +262,7 @@ arrow::write_parquet(cead_unido, "app/cead_delincuencia.parquet")
 # cead_unido <- arrow::read_parquet("app/cead_delincuencia.parquet")
 
 # para usuarios
-arrow::write_parquet(cead_unido, "datos_procesados/cead_delincuencia_chile.parquet")
-readr::write_rds(cead_unido, "datos_procesados/cead_delincuencia_chile.rds", compress = "gz")
+arrow::write_parquet(cead_unido, "datos/procesados/cead_delincuencia_chile.parquet")
+readr::write_rds(cead_unido, "datos/procesados/cead_delincuencia_chile.rds", compress = "gz")
 # readr::write_csv2(cead_unido, "datos_procesados/cead_delincuencia_chile.csv")
 

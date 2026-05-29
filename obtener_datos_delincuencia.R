@@ -20,7 +20,8 @@ comunas_por_calcular <- cargar_comunas()$cut_comuna
 # años_elegidos = 2018:2024
 # años_elegidos = 2024
 # años_elegidos = 2025 # hay que hacerlos todos de nuevo porque cambiaron las clasificaciones de delito
-años_elegidos = 2018:2025
+# años_elegidos = 2018:2025
+años_elegidos = 2025
 
 # también se puede usar para descargar un año nuevo de la base, en cuyo caso, en el procesamiento hay que activar
 # el paso que agrega incrementalmente el año nuevo a la base existente
@@ -34,11 +35,12 @@ datos_cead <- cead_descargar_datos(años_elegidos, comunas_por_calcular)
 
 # guardar ----
 # guardar información cruda, que viene como texto html
-readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2018_2025.rds", compress = "gz") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
-# readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2025_1.rds", compress = "gz") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
-# readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2024_3.rds", compress = "gz") # actualización de datos 2025 (31 de mayo 2025, datos nuevos hasta diciembre)
-# readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2024_2.rds", compress = "gz") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
-# readr::write_rds(datos_cead, "datos/cead_crudo_casospoliciales_2018_2024.rds", compress = "gz")
-# datos_cead <- readr::read_rds("datos/cead_crudo_casospoliciales_2014_2024.rds")
+readr::write_rds(datos_cead, "datos/crudos/cead_crudo_casospoliciales_2025.rds", compress = "gz") # actualización de datos 2026 (29 de mayo 2026, datos nuevos hasta diciembre 2025)
+# readr::write_rds(datos_cead, "datos/crudos/cead_crudo_casospoliciales_2018_2025.rds", compress = "gz") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+# readr::write_rds(datos_cead, "datos/crudos/cead_crudo_casospoliciales_2025_1.rds", compress = "gz") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
+# readr::write_rds(datos_cead, "datos/crudos/cead_crudo_casospoliciales_2024_3.rds", compress = "gz") # actualización de datos 2025 (31 de mayo 2025, datos nuevos hasta diciembre)
+# readr::write_rds(datos_cead, "datos/crudos/cead_crudo_casospoliciales_2024_2.rds", compress = "gz") # actualización de datos 2024 (17 de diciembre 2024, datos nuevos hasta septiembre)
+# readr::write_rds(datos_cead, "datos/crudos/cead_crudo_casospoliciales_2018_2024.rds", compress = "gz")
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2014_2024.rds")
 
 # luego el html se transforma en tablas en procesar_datos_delincuencia.R

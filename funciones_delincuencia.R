@@ -99,7 +99,7 @@ cead_descargar_datos <- function(años_elegidos, comunas_por_calcular) {
       
       # cead_obtener_tabla(data)
       
-      Sys.sleep((final-inicio) * 2) #espera para no saturar al servidor
+      # Sys.sleep((final-inicio) * 2) #espera para no saturar al servidor
       
       # if (nchar(data) < 30000) message("(!) tabla sin suficiente información")
       
