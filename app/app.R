@@ -1,18 +1,21 @@
-library(shiny) |> suppressPackageStartupMessages()
-library(shinyWidgets)
-library(shinycssloaders)
-library(shinyjs) |> suppressPackageStartupMessages()
-library(fresh)
-library(arrow) |> suppressPackageStartupMessages()
-library(dplyr) |> suppressPackageStartupMessages()
-library(ggplot2)
-library(gt) |> suppressPackageStartupMessages()
-library(slider)
-library(lubridate) |> suppressPackageStartupMessages()
-library(stringr)
-library(forcats)
-library(glue)
-library(shinydisconnect)
+{
+  library(shiny)
+  library(shinyWidgets)
+  library(shinycssloaders)
+  library(shinyjs)
+  library(fresh)
+  library(arrow)
+  library(dplyr)
+  library(readr)
+  library(ggplot2)
+  library(gt) 
+  library(slider)
+  library(lubridate)
+  library(stringr)
+  library(forcats)
+  library(glue)
+  library(shinydisconnect)
+} |> suppressPackageStartupMessages()
 
 options(scipen = 9999)
 
@@ -37,7 +40,7 @@ delitos_graves <- c(
   "Robo por sorpresa",
   "Robo frustrado",
   "Hurtos")
-  
+
 delitos_de_mayor_connotacion_social <- c(
   "Homicidios",
   "Violencia intrafamiliar",
@@ -94,7 +97,7 @@ lista_delitos <- as.character(unique(delincuencia$delito)) |> sort()
 periodos_presidenciales_0 <- readr::read_csv("periodos_presidenciales_chile.csv", show_col_types = F) |> 
   select(presidente = nombre, presidente_fecha_inicio = fecha_inicio, presidente_fecha_termino = fecha_termino)
 
-censo <- arrow::read_parquet("censo_proyecciones_año.parquet")
+# censo <- arrow::read_parquet("censo_proyecciones_año.parquet")
 
 # opciones
 resolucion = 95
@@ -1650,6 +1653,7 @@ server <- function(input, output, session) {
   
   ## gráfico comparativo tasas ----
   # censo <- reactive(arrow::read_parquet("censo_proyecciones_año.parquet"))
+  censo <- reactive(readr::read_csv("censo_proyecciones_año.csv"))
   
   datos_comparativo <- reactive({
     req(datos_unidad())
@@ -1663,12 +1667,12 @@ server <- function(input, output, session) {
     # agregar datos del censo
     if (input$unidad == "comuna") {
       datos <- datos |> 
-        left_join(censo, by = join_by(cut_comuna, año))
+        left_join(censo(), by = join_by(cut_comuna, año))
       
     } else if (input$unidad == "region") {
       # browser()
       
-      censo_region <- censo |> 
+      censo_region <- censo() |> 
         summarize(población = sum(población), .by = c(cut_region, region, año))
       
       datos <- datos |> 
