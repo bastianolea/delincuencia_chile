@@ -28,7 +28,7 @@ Los datos limpios están disponibles en la carpeta `datos/procesados`.
 
 ### Descargar datos
 
-La base de datos de delitos denunciados en Chile del Centro de Estudio y Análisis del Delito (CEAD), obtenida, ordenada y limpiada mediante el código de este repositorio, se encuentra disponible en formato `.parquet` [en este enlace.](https://github.com/bastianolea/delincuencia_chile/raw/main/datos_procesados/cead_delincuencia_chile.parquet)
+La base de datos de delitos denunciados en Chile del Centro de Estudio y Análisis del Delito (CEAD), obtenida, ordenada y limpiada mediante el código de este repositorio, se encuentra disponible en formato `.parquet` [en este enlace.](https://github.com/bastianolea/delincuencia_chile/raw/main/datos/procesados/cead_delincuencia_chile.parquet)
 
 **Nota:** los datos ya no están disponibles en formato `.csv`, porque la cantidad de observaciones aumentó y el archivo resultante pesaba más de 100 megas. En comparación, el formato `.parquet`, que es más eficiente y rápido, pesa sólo 1.1MB.
 
@@ -37,6 +37,7 @@ La base de datos de delitos denunciados en Chile del Centro de Estudio y Anális
 
 **Actualización 29/06/2026:**
 - Datos actualizados hasta diciembre de 2025 (máximo disponible en CEAD a la fecha)
+- Se agrega nuevo periodo presidencial
 
 **Actualización 13/11/2025:**
 - Datos actualizados hasta junio de 2025 (máximo disponible en CEAD a la fecha)
