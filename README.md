@@ -21,7 +21,11 @@ El objetivo de esta plataforma es transparentar datos objetivos de la delincuenc
 
 ## Datos
 
-Los datos se obtuvieron directamente desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial.](https://bastianolea.rbind.io/blog/tutorial_delitos_cead/). En este repositorio, el script `obtener_datos_delincuencia.R` realiza el scraping del sitio web de CEAD para los años y comunas que se le indique, y guarda los datos crudos (las tablas en formato html). Luego, el script `procesar_datos_delincuencia.R` carga estos datos crudos y los transforma a tablas, las limpia, y guarda los datos en formato `parquet` para lectura rápida. No se puede guardar en formato Excel porque tiene más de un millón de filas.
+Base de datos a nivel comunal, en escala mensual, de casos policiales para 30 delitos diferentes, abarcando todas las comunas del país, entre 2010 y 2025.
+
+Los datos se obtuvieron directamente desde CEAD haciendo uso de [técnicas de web scraping en R, detalladas en este tutorial.](https://bastianolea.rbind.io/blog/tutorial_delitos_cead/). 
+
+En este repositorio, el script `obtener_datos_delincuencia.R` realiza el scraping del sitio web de CEAD para los años y comunas que se le indique, y guarda los datos crudos (las tablas en formato html). Luego, el script `procesar_datos_delincuencia.R` carga estos datos crudos y los transforma a tablas, las limpia, y guarda los datos en formato `parquet` para lectura rápida. No se puede guardar en formato Excel porque tiene más de un millón de filas.
 
 Los datos limpios están disponibles en la carpeta `datos/procesados`.
 
