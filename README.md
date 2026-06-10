@@ -35,7 +35,10 @@ La base de datos de delitos denunciados en Chile del Centro de Estudio y Anális
 
 ## Actualizaciones
 
-**Actualización 29/06/2026:**
+**Actualización 10/06/2026:**
+- Datos actualizados (hacia atrás) hasta 2010; ahora abarcan desde 2010 a 2025, pero la aplicación sólo considera desde 2018 a 2025
+
+**Actualización 29/05/2026:**
 - Datos actualizados hasta diciembre de 2025 (máximo disponible en CEAD a la fecha)
 - Se agrega nuevo periodo presidencial
 
@@ -50,7 +53,6 @@ La base de datos de delitos denunciados en Chile del Centro de Estudio y Anális
 - Correcciones mínimas.
 
 **Actualización 03/07/2024:**
-
 - Datos actualizados hasta marzo de 2024 (máximo disponible en CEAD a la fecha)
 - Actualización del código de scraping para que funcione con la actualización del sitio de CEAD
 - Los datos ahora representan _casos policiales_ en vez de solo _denuncias._ Los casos policiales "consideran las denuncias de delitos que realiza la comunidad en las unidades policiales, más las detenciones que realizan las policías ante la ocurrencia de delitos flagrantes".
