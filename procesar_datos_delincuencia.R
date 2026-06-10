@@ -18,7 +18,8 @@ source("funciones_delincuencia.R")
 # datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2024_3.rds") # actualización de datos 2025 (31 de mayo, datos nuevos hasta diciembre 2024)
 # datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2025_1.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
 # datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2018_2025.rds") # actualización de datos 2025 (13 de noviembre 2025, datos nuevos hasta junio)
-datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2025.rds") # actualización de datos 2026 (29 de mayo 2026, datos nuevos hasta diciembre 2025)
+# datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2025.rds") # actualización de datos 2026 (29 de mayo 2026, datos nuevos hasta diciembre 2025)
+datos_cead <- readr::read_rds("datos/crudos/cead_crudo_casospoliciales_2017.rds") # obtención de datos hacia atrás (10 de junio 2026, datos desde 2018 hasta 2010)
 
 #comunas a calcular
 comunas_por_calcular <- cargar_comunas()$cut_comuna
@@ -95,7 +96,7 @@ cead_limpiada_2 <- cead_limpiada |>
 
 # cead_limpiada_2 |>
 #   filter(cut_comuna == 1101,
-#          año == 2025, mes == 4) |>
+#          año == 2015, mes == 4) |>
 #   select(delitos, cifra) |>
 #   print(n=Inf)
 
@@ -170,6 +171,7 @@ waldo::compare(cead_limpiada_4, cead_limpiada_5)
 # 
 # # actualización de datos 2025 (29 de mayo 2026, datos nuevos hasta diciembre 2025)
 # cead_nuevo <- cead_limpiada_5
+# 
 # cead_anterior <- arrow::read_parquet("app/cead_delincuencia.parquet") |>
 #   # correcciones 2026-05-29
 #   mutate(delito = recode(
@@ -186,7 +188,7 @@ waldo::compare(cead_limpiada_4, cead_limpiada_5)
 #             max(fecha))
 # 
 # cead_anterior |>
-#   filter(fecha < "2023-01-01") |>
+#   # filter(fecha < "2023-01-01") |>
 #   summarize(min(fecha),
 #             max(fecha))
 # 
@@ -197,7 +199,7 @@ waldo::compare(cead_limpiada_4, cead_limpiada_5)
 # 
 # # unir
 # cead_unido <- cead_anterior |>
-#   filter(fecha < min(cead_nuevo$fecha)) |>
+#   filter(fecha > min(cead_nuevo$fecha)) |>
 #   bind_rows(cead_nuevo) |>
 #   arrange(fecha, comuna, delito)
 # # # (hasta aquí el proceso de actualización de base anterior)
@@ -212,7 +214,7 @@ cead_unido <- cead_limpiada_5
 cead_unido |> distinct(delito) |> print(n=Inf)
 
 cead_unido |> filter(cut_comuna == 1101) |> 
-  filter(fecha == max(fecha)) |> 
+  filter(fecha == min(fecha)) |> 
   arrange(delito) |> 
   print(n=Inf)
 
@@ -230,7 +232,7 @@ cead_unido |>
   group_by(comuna) |> 
   summarize(n = n())
 
-#revisar visualmente
+# revisar visualmente
 library(ggplot2)
 
 cead_unido |> 
@@ -258,7 +260,9 @@ cead_unido |>
 # cead <- arrow::read_parquet("datos/cead_delincuencia.parquet")
 
 # para la app
-arrow::write_parquet(cead_unido, "app/cead_delincuencia.parquet")
+cead_unido |> 
+  filter(lubridate::year(fecha) >= 2018) |> 
+  arrow::write_parquet("app/cead_delincuencia.parquet")
 # cead_unido <- arrow::read_parquet("app/cead_delincuencia.parquet")
 
 # para usuarios
